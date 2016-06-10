@@ -53,8 +53,8 @@ auxiliary.show.customizer.message=<message>
                         <target>init-ivy</target>
                     </action>
                     <action>
-                        <label>Cvt Pom</label>
-                        <target>convert-pom</target>
+                        <label>Download Dependencies</label>
+                        <target>resolve-deps</target>
                     </action>
                 </context-menu>
             </view>

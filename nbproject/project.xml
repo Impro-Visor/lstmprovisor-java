@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://www.netbeans.org/ns/project/1">
+    <type>org.netbeans.modules.ant.freeform</type>
+    <configuration>
+        <general-data xmlns="http://www.netbeans.org/ns/freeform-project/1">
+            <!-- Do not use Project Properties customizer when editing this file manually. 
+ To prevent the customizer from showing, create nbproject/project.properties file and enter 
+auxiliary.show.customizer=false 
+property there. Adding 
+auxiliary.show.customizer.message=<message>
+ will show your customized message when someone attempts to open the customizer.  -->
+            <name>DeepDragonNN</name>
+            <properties/>
+            <folders>
+                <source-folder>
+                    <label>src</label>
+                    <type>java</type>
+                    <location>src</location>
+                </source-folder>
+            </folders>
+            <ide-actions>
+                <action name="build">
+                    <target>compile</target>
+                </action>
+                <action name="clean">
+                    <target>clean</target>
+                </action>
+                <action name="run">
+                    <target>run</target>
+                </action>
+                <action name="rebuild">
+                    <target>clean</target>
+                    <target>compile</target>
+                </action>
+            </ide-actions>
+            <view>
+                <items>
+                    <source-folder style="packages">
+                        <label>src</label>
+                        <location>src</location>
+                    </source-folder>
+                    <source-file>
+                        <location>build.xml</location>
+                    </source-file>
+                </items>
+                <context-menu>
+                    <ide-action name="build"/>
+                    <ide-action name="rebuild"/>
+                    <ide-action name="clean"/>
+                    <ide-action name="run"/>
+                    <action>
+                        <label>Install Ivy</label>
+                        <target>init-ivy</target>
+                    </action>
+                    <action>
+                        <label>Cvt Pom</label>
+                        <target>convert-pom</target>
+                    </action>
+                </context-menu>
+            </view>
+            <subprojects/>
+        </general-data>
+        <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/1">
+            <compilation-unit>
+                <package-root>src</package-root>
+                <classpath mode="compile">lib:lib/annotations-2.0.1.jar:lib/byte-buddy-0.6.14.jar:lib/commons-io-2.4.jar:lib/commons-lang3-3.3.1.jar:lib/commons-logging-1.1.1.jar:lib/commons-math3-3.4.1.jar:lib/guava-18.0.jar:lib/hamcrest-core-1.3.jar:lib/javassist-3.18.2-GA.jar:lib/jblas-1.2.4-javadoc.jar:lib/jblas-1.2.4-sources.jar:lib/jblas-1.2.4.jar:lib/junit-4.12.jar:lib/lombok-1.16.4.jar:lib/nd4j-api-0.4-rc3.6.jar:lib/nd4j-bytebuddy-0.4-rc3.6.jar:lib/nd4j-jblas-0.4-rc3.6-javadoc.jar:lib/nd4j-jblas-0.4-rc3.6-sources.jar:lib/nd4j-jblas-0.4-rc3.6.jar:lib/netty-buffer-4.0.28.Final.jar:lib/netty-common-4.0.28.Final.jar:lib/reflections-0.9.10.jar:lib/slf4j-api-1.7.10.jar:lib/spring-core-3.2.5.RELEASE.jar</classpath>
+                <source-level>1.5</source-level>
+            </compilation-unit>
+        </java-data>
+    </configuration>
+</project>

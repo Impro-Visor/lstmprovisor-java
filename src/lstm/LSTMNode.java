@@ -46,8 +46,11 @@ public class LSTMNode {
      */
     public INDArray step(INDArray input)
     {
+        input = input.transpose();
+        //System.out.println(input.rows());
         //concatenate result vector onto the end of input vector, dimension zero as it is 1-dimensional INDArray
-        input = Nd4j.concat(0, input, result);
+        //input = Nd4j.concat(1, input, result);
+        System.out.println(input.rows());
         
         /* There are 4 layers in LSTM, in order of sig(0) sig(1) sig(2) tanh(3) */
         //For each sigmoid layer, multiply its weight matrix by the input vector, add its bias vector, and perform sigmoid operation on resultant vector
@@ -55,10 +58,17 @@ public class LSTMNode {
         for(int i = 0; i <  3; i++)
         {
             //The "columns" of the weights 3d matrix should represent the two-dimensional matrices for each of the activations.
-            sigmoidLayers[i] = Transforms.sigmoid(weights.getColumn(i).mmul(input).add(biases.getColumn(i)));
+            //System.out.println("We are about to sigmoid!");
+            //System.out.println("\t We are gonna multiplying!");
+            INDArray mult1 = weights.slice(0).mmul(input);
+            
+            //System.out.println("\t We multiplied!");
+           //System.out.println("\t We are gonna add biases and sigmoid, then finish!");
+            sigmoidLayers[i] = Transforms.sigmoid(mult1.transpose().add(biases.slice(0)));
+            //System.out.println("We sigmoided!");
         }
         //Calculate tanh layer in same fashion as sigmoid layer, but with tanh activation function
-        INDArray tanhLayer = Transforms.tanh(weights.getColumn(3).mmul(input).add(biases.getColumn(3)));
+        INDArray tanhLayer = Transforms.tanh(weights.slice(0).mmul(input).transpose().add(biases.slice(0)));
         
         //do the first element-wise multiplication: sigmoid layer 1 and the current cell state
         INDArray multOp1 = sigmoidLayers[0].mul(cellState);

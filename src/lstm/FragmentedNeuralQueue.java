@@ -7,16 +7,18 @@ package lstm;
 
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+import java.util.LinkedList;
+import java.util.Iterator;
 
 /**
  * Class FragmentedNeuralQueue is an implementation of a neural queue simplified for operation (cannot be used for training) of our bipartite cooperative LSTM architecture
  * @author Nicholas Weintraut
  */
 public class FragmentedNeuralQueue {
-    private INDArray valueMatrix; //[index][vectorIndex]
-    private INDArray strengthVector; //[index]
+    private LinkedList<INDArray> vectorList; //[index][vectorIndex]
+    private LinkedList<Double> strengthList; //[index]
     private double fragmentStrength;
-    private int beginning;
+    private int inputSize;
     
     /**
      * Initializes FragmentedNeuralQueue instance with the given input vector size and a fragment strength of 1.
@@ -34,9 +36,10 @@ public class FragmentedNeuralQueue {
      */
     public FragmentedNeuralQueue(int inputSize, double fragmentStrength)
     {
-        valueMatrix = Nd4j.create(new int[]{0,inputSize});
+        vectorList = new LinkedList<INDArray>(); 
+        strengthList = new LinkedList<Double>();
         this.fragmentStrength = fragmentStrength;
-        this.beginning = 0;
+        this.inputSize = inputSize;
     }
     
     /**
@@ -47,11 +50,13 @@ public class FragmentedNeuralQueue {
      */
     public void enqueueStep(INDArray inputVector, double enqueueSignal)
     {
+        //System.out.println("are we gonna do it");
         //add inputVector to valueMatrix
-        valueMatrix.addColumnVector(inputVector);
+        vectorList.add(inputVector);
         
+        //System.out.println("we added column vector, now lets add an enqueueSignal");
         //we won't update our strengthVector other than adding enqueueSignal
-        strengthVector.add(enqueueSignal);
+        strengthList.add(enqueueSignal);
     }
     
     /**
@@ -62,23 +67,27 @@ public class FragmentedNeuralQueue {
     public INDArray peek()
     {
         //lets start generating the readVector
-        INDArray readVector = Nd4j.create(valueMatrix.rows());
+        INDArray readVector = Nd4j.create(inputSize);
         double totalStrength = 0.0;
-        int i = beginning;
+        
+        Iterator<INDArray> vectorIterator = vectorList.iterator();
+        Iterator<Double> strengthIterator = strengthList.iterator();
         //while we have not reached the strength limit for our fragment
-        while(totalStrength < fragmentStrength && i < strengthVector.length())
+        while(totalStrength < fragmentStrength && vectorIterator.hasNext())
         {
+            INDArray currVector = vectorIterator.next();
+            double currStrength = strengthIterator.next();
             //if our totalStrength would exceed our fragment strength, only take the portion needed to fill it
-            if(totalStrength + strengthVector.getDouble(i) > fragmentStrength)
+            if(totalStrength + currStrength > fragmentStrength)
             {
-                readVector.add(valueMatrix.getColumn(i).mul(fragmentStrength - totalStrength));
+                readVector.add(currVector.mul(fragmentStrength - totalStrength));
                 totalStrength = fragmentStrength;
             }
             //if we have space left, we'll simply multiply the current vector by it's scale and add it.
             else
             {
-                readVector.add(valueMatrix.getColumn(i).mul(strengthVector.getDouble(i)));
-                totalStrength += strengthVector.getDouble(i);
+                readVector.add(currVector.mul(currStrength));
+                totalStrength += currStrength;
             }
         }
         
@@ -90,6 +99,7 @@ public class FragmentedNeuralQueue {
      */
     public void dequeueStep()
     {
-        strengthVector.putScalar(beginning++, 0.0);
+        vectorList.remove(0);
+        strengthList.remove(0);
     }
 }

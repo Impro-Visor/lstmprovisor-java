@@ -15,7 +15,7 @@ import org.nd4j.linalg.factory.Nd4j;
  * The LSTMNode is currently operated via the push method, which pushes data through the recurrent node and retrieves the result vector.
  * @author Nicholas Weintraut
  */
-public class LSTMNode {  
+public class LSTM {  
     
     //The default bias values which the weighted activations will operate on, stored as a 2 dimensional array comprised of bias vectors for each activation
     INDArray biases;
@@ -26,13 +26,22 @@ public class LSTMNode {
     //The weights of the nodes activations, stored as a 3 dimensional array comprised of the 2 dimensional weight matrices for each activation
     INDArray weights;
     
-    public LSTMNode(int inputSize, int outputSize, INDArray weights, INDArray biases)
+    public LSTM(int inputSize, int outputSize)
     {
         //biases should have columns for 4 activations and rows for each output
-        Nd4j.create(new int[]{4, outputSize}).checkDimensions(biases);
-        this.biases = biases;
+        //Nd4j.create(new int[]{4, outputSize}).checkDimensions(biases);
+        this.biases = Nd4j.rand(new int[]{4, outputSize}).mul(2.0).sub(1.0);
         //weights should have entries for 4 activations, columns for each input, and rows for each output
-        Nd4j.create(new int[]{4, inputSize, outputSize}).checkDimensions(weights);
+        //Nd4j.create(new int[]{4, inputSize, outputSize}).checkDimensions(weights);
+        this.weights = Nd4j.rand(new int[]{4, outputSize, inputSize + outputSize}).mul(2.0).sub(1.0);
+        //initialize cellState and result to be of output size, and initialize result to all zeros
+        this.cellState = Nd4j.create(outputSize);
+        this.result = Nd4j.zeros(outputSize);
+    }
+    
+    public LSTM(int inputSize, int outputSize, INDArray weights, INDArray biases)
+    {
+        this.biases = biases;
         this.weights = weights;
         //initialize cellState and result to be of output size, and initialize result to all zeros
         this.cellState = Nd4j.create(outputSize);
@@ -49,19 +58,23 @@ public class LSTMNode {
         input = input.transpose();
         //System.out.println(input.rows());
         //concatenate result vector onto the end of input vector, dimension zero as it is 1-dimensional INDArray
-        //input = Nd4j.concat(1, input, result);
-        System.out.println(input.rows());
+        input = Nd4j.concat(0, input, result);
+        //System.out.println(input.rows());
         
         /* There are 4 layers in LSTM, in order of sig(0) sig(1) sig(2) tanh(3) */
         //For each sigmoid layer, multiply its weight matrix by the input vector, add its bias vector, and perform sigmoid operation on resultant vector
         INDArray[] sigmoidLayers = new INDArray[3];
         for(int i = 0; i <  3; i++)
         {
+            //System.out.println("we are about to the multiplies");
             //The "columns" of the weights 3d matrix should represent the two-dimensional matrices for each of the activations.
             //System.out.println("We are about to sigmoid!");
             //System.out.println("\t We are gonna multiplying!");
+            //System.out.println(weights.slice(0).rows() + ", " + weights.slice(0).columns());
+            //System.out.println(input.rows() + ", " + input.columns());
             INDArray mult1 = weights.slice(0).mmul(input);
             
+            //System.out.println("We have multied");
             //System.out.println("\t We multiplied!");
            //System.out.println("\t We are gonna add biases and sigmoid, then finish!");
             sigmoidLayers[i] = Transforms.sigmoid(mult1.transpose().add(biases.slice(0)));
@@ -77,6 +90,7 @@ public class LSTMNode {
         INDArray multOp2 = sigmoidLayers[1].mul(tanhLayer);
         //
         cellState = multOp1.add(multOp2);
+        //System.out.println("Cell state " + cellState);
         INDArray tanhOp = Transforms.tanh(cellState);
         result = sigmoidLayers[2].mul(tanhOp);
 

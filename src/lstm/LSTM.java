@@ -26,6 +26,11 @@ public class LSTM {
     //The weights of the nodes activations, stored as a 3 dimensional array comprised of the 2 dimensional weight matrices for each activation
     INDArray weights;
     
+    INDArray[] sigmoidLayers;
+    INDArray[] sigmoidMult1;
+    INDArray tanhLayer;
+    
+    
     public LSTM(int inputSize, int outputSize)
     {
         //biases should have columns for 4 activations and rows for each output
@@ -37,6 +42,8 @@ public class LSTM {
         //initialize cellState and result to be of output size, and initialize result to all zeros
         this.cellState = Nd4j.create(outputSize);
         this.result = Nd4j.zeros(outputSize);
+        this.sigmoidLayers = new INDArray[3];
+        this.sigmoidMult1 = new INDArray[3];
     }
     
     public LSTM(int inputSize, int outputSize, INDArray weights, INDArray biases)
@@ -46,6 +53,8 @@ public class LSTM {
         //initialize cellState and result to be of output size, and initialize result to all zeros
         this.cellState = Nd4j.create(outputSize);
         this.result = Nd4j.zeros(outputSize);
+        this.sigmoidLayers = new INDArray[3];
+        this.sigmoidMult1 = new INDArray[3];
     }
     
     /**
@@ -55,7 +64,9 @@ public class LSTM {
      */
     public INDArray step(INDArray input)
     {
-        input = input.transpose();
+        //System.out.println(input.length());
+        input = input.transposei();
+        //System.out.println(input.length());
         //System.out.println(input.rows());
         //concatenate result vector onto the end of input vector, dimension zero as it is 1-dimensional INDArray
         input = Nd4j.concat(0, input, result);
@@ -63,7 +74,6 @@ public class LSTM {
         
         /* There are 4 layers in LSTM, in order of sig(0) sig(1) sig(2) tanh(3) */
         //For each sigmoid layer, multiply its weight matrix by the input vector, add its bias vector, and perform sigmoid operation on resultant vector
-        INDArray[] sigmoidLayers = new INDArray[3];
         for(int i = 0; i <  3; i++)
         {
             //System.out.println("we are about to the multiplies");
@@ -72,28 +82,35 @@ public class LSTM {
             //System.out.println("\t We are gonna multiplying!");
             //System.out.println(weights.slice(0).rows() + ", " + weights.slice(0).columns());
             //System.out.println(input.rows() + ", " + input.columns());
-            INDArray mult1 = weights.slice(0).mmul(input);
-            
+            if(sigmoidMult1[i] == null)
+                sigmoidMult1[i] = weights.slice(i).mmul(input);
+            else
+                sigmoidMult1[i] = weights.slice(i).mmul(input, sigmoidMult1[i]);            
             //System.out.println("We have multied");
             //System.out.println("\t We multiplied!");
            //System.out.println("\t We are gonna add biases and sigmoid, then finish!");
-            sigmoidLayers[i] = Transforms.sigmoid(mult1.transpose().add(biases.slice(0)));
+           if(sigmoidLayers[i] == null)
+                sigmoidLayers[i] = Transforms.sigmoid(sigmoidMult1[i].transposei().addi(biases.slice(i)), false);
             //System.out.println("We sigmoided!");
         }
         //Calculate tanh layer in same fashion as sigmoid layer, but with tanh activation function
-        INDArray tanhLayer = Transforms.tanh(weights.slice(0).mmul(input).transpose().add(biases.slice(0)));
+        if(tanhLayer == null)
+            tanhLayer = weights.slice(3).mmul(input);
+        else
+            tanhLayer = weights.slice(3).mmul(input, tanhLayer);
+        tanhLayer = Transforms.tanh(tanhLayer.transposei().addi(biases.slice(3)));
         
         //do the first element-wise multiplication: sigmoid layer 1 and the current cell state
-        INDArray multOp1 = sigmoidLayers[0].mul(cellState);
+        INDArray multOp1 = sigmoidLayers[0].muli(cellState);
         
         //do the second element-wise multiplication: sigmoid layer 2 and the tanh layer
-        INDArray multOp2 = sigmoidLayers[1].mul(tanhLayer);
+        INDArray multOp2 = sigmoidLayers[1].muli(tanhLayer);
         //
-        cellState = multOp1.add(multOp2);
+        cellState = multOp1.addi(multOp2);
         //System.out.println("Cell state " + cellState);
         INDArray tanhOp = Transforms.tanh(cellState);
-        result = sigmoidLayers[2].mul(tanhOp);
-
+        result = sigmoidLayers[2].muli(tanhOp);
+        
         return result.dup();
     }
     

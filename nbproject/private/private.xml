@@ -3,18 +3,19 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/examples/ElementWiseOperationExample.java</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/nbproject/project.xml</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/examples/FunctionsExample.java</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/examples/ReshapeOperationExample.java</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/ivy.xml</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/build.xml</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/LSTMNode.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/LSTM.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/main/INDArrayDataVessel.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/main/MaxTest.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/NoteSoftMaxOneHotSampler.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/main/Driver.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/FullyConnectedLayer.java</file>
             <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/FragmentedNeuralQueue.java</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/NeuralQueue.java</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/examples/MatrixOperationExample.java</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/nbproject/ide-targets.xml</file>
-            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/examples/AxpyExample.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/architecture/CompressingAutoencoder.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/SwitchPairingsFilter.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/build.xml</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/OutputFilter.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/OpType.java</file>
+            <file>file:/Users/cssummer16/NetBeansProjects/DeepDragonNN/src/lstm/Sampler.java</file>
         </group>
     </open-files>
 </project-private>

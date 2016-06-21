@@ -3,12 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package main;
-import rbm.DataVessel;
+package lstm;
+
+import org.nd4j.linalg.api.ndarray.INDArray;
+
 /**
  *
  * @author cssummer16
  */
-public class INDArrayDataVessel {
-    
+public interface Sampler {
+    public INDArray sample(INDArray input);
 }

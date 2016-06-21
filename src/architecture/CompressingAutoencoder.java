@@ -6,8 +6,16 @@
 package architecture;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import lstm.LSTM;
+import lstm.FullyConnectedLayer;
 import lstm.FragmentedNeuralQueue;
+import lstm.OpType;
+import lstm.Sampler;
+import lstm.NoteSoftMaxOneHotSampler;
+import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.indexing.NDArrayIndex;
+import lstm.OutputFilter;
+import lstm.SwitchPairingsFilter;
+import main.LogTimer;
 
 /**
  *
@@ -15,38 +23,73 @@ import org.nd4j.linalg.indexing.NDArrayIndex;
  */
 public class CompressingAutoencoder {
     private int inputSize;
+    private int chopSize;
     private int featureVectorSize;
     private int outputSize;
-    private LSTM encoder;
+    private INDArray currInput;
+    private INDArray currOutput;
+    private LSTM encoder1;
+    private LSTM encoder2;
+    private FullyConnectedLayer fullLayer1;
     private FragmentedNeuralQueue queue;
-    private LSTM decoder;
+    private LSTM decoder1;
+    private LSTM decoder2;
+    private FullyConnectedLayer fullLayer2;
+    private Sampler finalSampler;
+    private OutputFilter outputFilter;
     
     
-    public CompressingAutoencoder(int inputSize, int featureVectorSize, int outputSize)
+    public CompressingAutoencoder(int inputSize, int chopSize, int encoderBridge, int encoderSize, int decoderBridge, int decoderSize, int featureVectorSize, int outputSize)
     {
         this.inputSize = inputSize;
+        this.chopSize = chopSize;
         this.featureVectorSize = featureVectorSize;
         this.outputSize = outputSize;
-        encoder = new LSTM(inputSize, featureVectorSize + 1);
+        encoder1 = new LSTM(inputSize, encoderBridge);
+        encoder2 = new LSTM(encoderBridge, encoderSize);
+        fullLayer1 = new FullyConnectedLayer(encoderSize, featureVectorSize + 1, OpType.Sigmoid);
         queue = new FragmentedNeuralQueue(featureVectorSize);
-        decoder = new LSTM(featureVectorSize, outputSize);
+        decoder1 = new LSTM(featureVectorSize + (inputSize - chopSize) + outputSize, decoderBridge);
+        decoder2 = new LSTM(decoderBridge, decoderSize);
+        //op type is none because we will feed its result through a one hot softmax sampler
+        fullLayer2 = new FullyConnectedLayer(decoderSize, outputSize, OpType.None);
+        finalSampler = new NoteSoftMaxOneHotSampler();
+        outputFilter = new SwitchPairingsFilter();
+        
+        currInput = Nd4j.zeros(inputSize);
+        currOutput = Nd4j.zeros(outputSize);
     }
-    public CompressingAutoencoder(int inputSize, int featureVectorSize, int outputSize, INDArray encoderWeights, INDArray encoderBiases, INDArray decoderWeights, INDArray decoderBiases)
+    public CompressingAutoencoder(int inputSize, int lstmSize, int featureVectorSize, int outputSize, INDArray encoder1Weights, INDArray encoder2Weights, INDArray encoder1Biases, INDArray fullLayer1Weights, INDArray fullLayer1Biases, INDArray encoder2Biases, INDArray decoder1Weights, INDArray decoder2Weights, INDArray decoder1Biases, INDArray decoder2Biases, INDArray fullLayer2Weights, INDArray fullLayer2Biases)
     {
         this.inputSize = inputSize;
         this.featureVectorSize = featureVectorSize;
         this.outputSize = outputSize;
-        encoder = new LSTM(inputSize, featureVectorSize + 1, encoderWeights, encoderBiases);
+        encoder1 = new LSTM(inputSize, lstmSize, encoder1Weights, encoder1Biases);
+        encoder2 = new LSTM(lstmSize, lstmSize, encoder2Weights, encoder2Biases);
+        fullLayer1 = new FullyConnectedLayer(lstmSize, featureVectorSize + 1, OpType.Softmax, fullLayer2Weights, fullLayer2Biases);
         queue = new FragmentedNeuralQueue(featureVectorSize);
-        decoder = new LSTM(featureVectorSize, outputSize, decoderWeights, decoderBiases);
+        decoder1 = new LSTM(featureVectorSize + (inputSize - chopSize) + outputSize, lstmSize, decoder1Weights, decoder1Biases);
+        decoder2 = new LSTM(lstmSize, lstmSize, decoder2Weights, decoder2Biases);
+        
+        fullLayer2 = new FullyConnectedLayer(lstmSize, outputSize, OpType.None, fullLayer2Weights, fullLayer2Biases);
+        finalSampler = new NoteSoftMaxOneHotSampler();
+        outputFilter = new SwitchPairingsFilter();
     }
     
     public void encodeStep(INDArray input)
     {
+        
         if(input.length() == inputSize)
         {
-            INDArray encoding = encoder.step(input);
-            queue.enqueueStep(encoding.get(NDArrayIndex.interval(0,featureVectorSize)), encoding.getDouble(featureVectorSize));
+            currInput = input;
+            //long startTime = System.nanoTime();
+            INDArray encoding1 = encoder1.step(input);
+            INDArray encoding2 = encoder2.step(encoding1);
+            INDArray vectorEncoding = fullLayer1.forward(encoding2);
+            //long startQueueTime = System.nanoTime();
+            queue.enqueueStep(vectorEncoding.get(NDArrayIndex.interval(1,featureVectorSize + 1)), vectorEncoding.getDouble(0));
+            //long endTime = System.nanoTime();
+            //System.out.println("LSTMs took " + (startQueueTime - startTime) / 1000000000.00 + " seconds, while enqueue took " + (endTime - startQueueTime) / 1000000000.00 + " seconds");
         }
         else
         {
@@ -61,45 +104,17 @@ public class CompressingAutoencoder {
     
     public INDArray decodeStep()
     {
-        return decoder.step(queue.dequeueStep());
+        //LogTimer.startLog("Decoding1...");
+        INDArray decoding1 = decoder1.step(Nd4j.concat(0, currInput.get(NDArrayIndex.interval(0, inputSize - chopSize)), queue.dequeueStep(), currOutput));
+        //LogTimer.endLog();
+        //LogTimer.startLog("Decoding2...");
+        INDArray decoding2 = decoder2.step(decoding1);
+        //LogTimer.endLog();
+        //LogTimer.startLog("FullLayer...");
+        INDArray decoding3 = fullLayer2.forward(decoding2);
+        //LogTimer.endLog();
+        //use sampler, and then apply cleaning filter
+        currOutput = outputFilter.filter(finalSampler.sample(decoding3));
+        return currOutput;
     }
-    /*
-    public static void main(String[] args)
-    {
-        int steps = 192;
-        int inputSize = 32;
-        //There is an error with Nd4j furing multiplication of weights and input when the input size on an LSTM node is greater than the output size
-        //geez
-        int featureVectorSize = 500;
-        int outputSize = 32;
-        
-    
-        System.out.println("STARTED");
-        long startTime = System.nanoTime();
-        for(int i = 0; i < inputSequence.rows(); i++)
-        {
-            INDArray lstmOut1 = encoder.step(inputSequence.slice(0));
-            //System.out.println("whyyyyyyy");
-            INDArray lstm1Vector = Nd4j.create(lstmOut1.length() - 1);
-            for(int j = 0; j < lstm1Vector.length(); j++)
-            {
-                lstm1Vector.putScalar(j, lstmOut1.getDouble(j));
-            }
-            //System.out.println("here we go queue!!!");
-            fragQueue.enqueueStep(lstm1Vector, lstmOut1.getDouble(lstmOut1.length() - 1));
-            //System.out.println("we queue'd!");
-        }
-        
-        for(int i = 0; i < inputSequence.rows(); i++)
-        {
-            //System.out.println("AAAHHHHHH");
-            
-            //System.out.println(decoder.step(fragQueue.peek()));
-            fragQueue.dequeueStep();
-        }
-        long endTime = System.nanoTime();
-        long duration = (endTime - startTime);
-        float milliDuration = duration / 1000000.0f;
-        System.out.println("The operation took " + milliDuration + " milliseconds");
-    }*/
 }

@@ -82,7 +82,8 @@
     </target>
 
     <target name="run">
-        <java jar="build/jar/DeepDragonNN.jar" fork="true"/>
+        <java jar="build/jar/DeepDragonNN.jar" fork="true" args="${basedir}/Inputs/0150.ls ${basedir}/Outputs"/>
+        
     </target>
 
 </project>

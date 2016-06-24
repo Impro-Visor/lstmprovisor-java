@@ -59,6 +59,7 @@
     <path id="libs-classpath">
       <pathelement location="${basedir}/lib"/>
       <fileset dir="${basedir}/lib" includes="*.jar"/>
+      <fileset dir="${basedir}/jep" includes="*.jar" />
     </path>
 
     <target name="compile" depends="resolve-deps">
@@ -72,13 +73,14 @@
         <mkdir dir="build/jar"/>
         <jar destfile="build/jar/DeepDragonNN.jar" basedir="build/classes">
             <zipgroupfileset dir="${basedir}/lib" includes="*.jar" />
+            <zipgroupfileset dir="${basedir}/jep" includes="*.jar" />
             <manifest>
-                <attribute name="Main-Class" value="examples.ReshapeOperationExample"/>
+                <attribute name="Main-Class" value="javapythontest.JavaPythonTest"/>
             </manifest>
         </jar>
     </target>
 
-    <target name="run" depends="jar">
+    <target name="run">
         <java jar="build/jar/DeepDragonNN.jar" fork="true"/>
     </target>
 

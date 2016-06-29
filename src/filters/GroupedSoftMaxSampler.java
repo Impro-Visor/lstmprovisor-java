@@ -3,25 +3,33 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package lstm;
+package filters;
 
+import filters.Operations;
 import encoding.Group;
 import java.util.Random;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.indexing.NDArrayIndex;
-import rbm.Params;
 
 /**
  *
  * @author cssummer16
  */
-public class NoteSoftMaxOneHotSampler implements Sampler{
-    public INDArray sample(INDArray output)
+public class GroupedSoftMaxSampler implements DataFilter    {
+    
+    private Group[] groups;
+    
+    public GroupedSoftMaxSampler(Group[] groups)
+    {
+        this.groups = groups;
+    }
+    
+    public INDArray filter(INDArray output)
     {
         int groupKernel = 0;
-                for(Group group : Params.noteEncoding.getGroups()) {
+                for(Group group : groups) {
                     if(group.isOneHot()) {
-                        INDArray groupData = OpType.Softmax.operate(output.get(NDArrayIndex.interval(group.startIndex, group.endIndex)));
+                        INDArray groupData = Operations.Softmax.operate(output.get(NDArrayIndex.interval(group.startIndex, group.endIndex)));
                         
                         int index = 0;
                         double randPoint = (new Random()).nextDouble();
@@ -39,9 +47,10 @@ public class NoteSoftMaxOneHotSampler implements Sampler{
                                 output.putScalar(groupKernel + j, 1.0);
                             }
                         }
+                        
                     }
                     else {
-                        INDArray groupData = OpType.Sigmoid.operate(output.get(NDArrayIndex.interval(group.startIndex, group.endIndex)));
+                        INDArray groupData = Operations.Sigmoid.operate(output.get(NDArrayIndex.interval(group.startIndex, group.endIndex)));
                         Random rand = new Random();
                         for(int j = 0; j < group.length(); j++) {
                             double nextDouble = rand.nextDouble();

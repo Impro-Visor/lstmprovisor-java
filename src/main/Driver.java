@@ -5,114 +5,147 @@
  */
 package main;
 
+import architecture.NetworkMeatPacker;
 import java.io.File;
-import javax.swing.JFileChooser;
-import leadsheet.LeadSheetHandler;
-import rbm.DataVessel;
-import architecture.CompressingAutoencoder;
-import org.nd4j.linalg.factory.Nd4j;
+import io.leadsheet.LeadSheetDataSequence;
+import architecture.CompressingAutoEncoder;
+import architecture.FullyConnectedLayer;
+import architecture.LSTM;
 import org.nd4j.linalg.api.ndarray.INDArray;
-import rbm.Params;
+import architecture.LeadsheetAutoencoderInputManager;
+import architecture.Loadable;
+import encoding.EncodingParameters;
 import encoding.Group;
+import filters.GroupedSoftMaxSampler;
+import filters.Operations;
+import io.leadsheet.LeadSheetIO;
 import java.util.Random;
+import org.nd4j.linalg.factory.Nd4j;
 
 /**
- *
- * @author cssummer16
+ *  Class Driver is an implementation test for CompressingAutoEncoder which reads a LeadSheet file and produces an equivalent length LeadSheet file
+ * @author Nicholas Weintraut
  */
 public class Driver {
-    private static JFileChooser chooser = new JFileChooser();
-    private static JFileChooser outputChooser = new JFileChooser();
+    private static final boolean advanceDecoding = true; //should we start decoding as soon as possible?
     
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) {
         
-        /*chooser.addChoosableFileFilter(new javax.swing.filechooser.FileFilter() {
-            public boolean accept(File f) {
-                if (f.isDirectory()) return true;
-                return (f.getName().endsWith(".ls"));
+        //here is just silly code for generating name based on an LSTM lol $wag
+        LSTM lstm = new LSTM();
+        FullyConnectedLayer fullLayer = new FullyConnectedLayer(Operations.None);
+        Loadable titleNetLoader = new Loadable(){
+            @Override
+            public boolean load(INDArray array, String path)
+            {
+                String car = pathCar(path);
+                String cdr = pathCdr(path);
+                switch(car)
+                {
+                    case "full": return fullLayer.load(array, cdr);
+                    case "lstm": return lstm.load(array, cdr);
+                    default:
+                        return false;
+                }
             }
-
-            public String getDescription() {
-                return "Leadsheet files (.ls)";
+        };
+        
+        String[] notFound1 = (new NetworkMeatPacker()).pack(args[3], titleNetLoader);
+        for(String name : notFound1)
+            System.out.println(name);
+        
+        Random rand = new Random();
+        
+        INDArray charOut = Nd4j.create(new double[27]);
+        charOut.putScalar(0, 1.0);
+        GroupedSoftMaxSampler sampler = new GroupedSoftMaxSampler(new Group[]{new Group(0, 27, true)});
+        String songTitle = "";
+        for(int i = 0; i < 8; i++)
+        {
+            charOut = sampler.filter(fullLayer.forward(lstm.step(charOut)));
+            int charIndex = 0;
+            for(; charIndex < charOut.length(); charIndex++)
+            {
+                if(charOut.getDouble(charIndex) == 1.0)
+                    break;
             }
-        });
-        int status = chooser.showDialog(null, "Choose an input file!");
-        */
-        if (/*status == JFileChooser.APPROVE_OPTION*/args.length > 1) {
-            LogTimer.initStartTime();
-            //now we'll load file
-            //System.out.println("Loading file!");
-            File inputFile = new File(args[0]);
+            if(charIndex >= 26)
+                songTitle += " ";
+            else
+                songTitle += ((char) ('a' + charIndex));
+        }
+        //end stupid stuff, songTitle will be used later during writeCall
+        LogTimer.initStartTime();
+        LogTimer.log("Generated song name: " + songTitle);
+        
+        System.out.println(Double.valueOf("4.652957618236541748e-02"));
+        //check if we have three arguments (first is input file path, second is output folder path)
+        if (args.length > 2) {
             
+            /*Initialization*/
+            LogTimer.initStartTime();   //start our logging timer to keep track of our execution time
+            File inputFile = new File(args[0]); //load input file
             LogTimer.log("Reading file...");
-            DataVessel inputContents = LeadSheetHandler.parseLeadSheetLick(/*chooser.getSelectedFile()*/inputFile);
+            LeadSheetDataSequence inputSequence = LeadSheetIO.readLeadSheet(inputFile);  //read our leadsheet to get a data vessel as retrieved in rbm-provisor
             LogTimer.log("Instantiating autoencoder...");
-            int inputSize = inputContents.getNumCols() + inputContents.getNumChordColumns();
-            int outputSize = inputContents.getNumCols();
-            CompressingAutoencoder autoencoder = new CompressingAutoencoder(inputSize, outputSize, 200, 150, 200, 150, 100, outputSize);
-            /* We'll now generate input vectors from the DataVessel and feed them into the network*/
-            //get melody data
-            int[] melody = inputContents.getMelody();
-            //get chord data
-            int[] chords = inputContents.getChords();
+            int inputSize = 34;
+            int outputSize = EncodingParameters.noteEncoder.getNoteLength();
+            int featureVectorSize = 100;
+            CompressingAutoEncoder autoencoder = new CompressingAutoEncoder(new LeadsheetAutoencoderInputManager(EncodingParameters.noteEncoder.getNoteLength()), inputSize, outputSize, featureVectorSize); //create our network
+            
+            //"pack" the network from weights and biases file directory
+            LogTimer.log("Packing autoencoder from files");
+            String[] notFound = (new NetworkMeatPacker()).pack(args[2], autoencoder);
+            if(notFound.length > 0)
+            {
+                System.err.println(notFound.length + " files were not able to be matched to the architecture!");
+                for(String fileName : notFound)
+                {
+                    System.err.println("\t" + fileName);
+                }
+            }
+            LeadSheetDataSequence outputSequence = inputSequence.dup();
+            int j = 0;
+            /*while(outputSequence.hasMelodyLeft())
+            {
+                INDArray melodyPop = outputSequence.pollMelody();
+                for(int i = 0; i < melodyPop.length(); i++)
+                    System.out.print(melodyPop.getDouble(i) + " ");
+                System.out.println("<- encoded melody step " + j);
+                j++;
+            }*/
+            outputSequence.clearMelody();
+            
+            
             
             LogTimer.startLog("Encoding data...");
-            //these kernel variables will keep track of our position in each of the arrays
-            int melodyKernel = 0;
-            int chordKernel = 0;
-            //System.out.println("Starting encoding!");
-            //for each row of input (getNumRows retrieves the number of melody bit vectors, we are assuming it matches with number of columns)
-            for(int i = 0; i < inputContents.getNumRows(); i++)
-            {
-                //create an inputVector
-                INDArray inputVector = Nd4j.create(inputSize);
-                for(int j = 0; j < inputContents.getNumCols(); j++)
-                {
-                    inputVector.putScalar(j, melody[j + melodyKernel]);
+            INDArray cellState = autoencoder.getDecoderLSTM1().cellState;
+            for(int i = 0; i < cellState.length(); i++)
+                System.out.print(cellState.getDouble(i));
+            System.out.println("<- cellState");
+            //TradingTimer.initStart(); //start our trading timer to keep track our our generation versus realtime play
+            while(inputSequence.hasNext()) { //iterate through time steps in input data
+                INDArray inputVector = inputSequence.retrieve();
+                //TradingTimer.waitForNextTimedInput();
+                autoencoder.encodeStep(inputVector); //feed the resultant input vector into the network
+                if(advanceDecoding) { //if we are using advance decoding (we start decoding as soon as we can)
+                    if(autoencoder.canDecode()) { //if queue has enough data to decode from
+                        outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder
+                        //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are
+                    }
                 }
-                for(int j = 0; j < inputContents.getNumChordColumns(); j++)
-                {
-                    inputVector.putScalar(j + inputContents.getNumCols(), chords[j+chordKernel]);
-                }
-                melodyKernel += inputContents.getNumCols();
-                chordKernel += inputContents.getNumChordColumns();
-                //System.out.println("encoding step " + i + "!");
-                //feed the vector into the network
-                
-                autoencoder.encodeStep(inputVector);
-                
             }
-            LogTimer.endLog();
-            LogTimer.startLog("Decoding data...");
-            int[] newMelody = new int[melody.length];
-            //reset melodyKernel for writing new melody vector
-            melodyKernel = 0;
-            //System.out.println("We're gonna decode!");
-            //generate final melody activations and write them to newMelody array
-            for(int i = 0; i < inputContents.getNumRows(); i++)
-            {
-                /* Autoencoder output has already been encoded according to note encoding data */
-                INDArray outputVector = autoencoder.decodeStep();
-                
-                //write final vectors into new melody array
-                for(int j = 0; j < outputSize; j++) {
-                    newMelody[melodyKernel+j] = outputVector.getInt(j);
-                }
-                melodyKernel += outputSize;
+            while(autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
+                    outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder
+                    //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
             }
-            LogTimer.endLog();
-            //System.out.println("About to prompt user!");
-            DataVessel outputVessel = new DataVessel(newMelody, chords, newMelody.length / outputSize, outputSize);
             LogTimer.log("Writing file...");
-            //outputChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            //int outputStatus = outputChooser.showDialog(null, "Choose an output directory!");
-            if (/*outputStatus == JFileChooser.APPROVE_OPTION*/true) {
-                String outputFilename = args[1] + java.io.File.separator + inputFile.getName().replace(".ls", "_Output");
-                LeadSheetHandler.writeLeadSheet(outputVessel, leadsheet.Constants.BEAT / leadsheet.Constants.RESOLUTION_SCALAR, outputFilename);
-                System.out.println(outputFilename);
-            }
-            LogTimer.log("Process finished");
+            
+            String outputFilename = args[1] + java.io.File.separator + inputFile.getName().replace(".ls", "_Output"); //we'll write our generated file with the same name plus "_Output"
+            LeadSheetIO.writeLeadSheet(outputSequence, outputFilename, songTitle);
+            System.out.println(outputFilename);
+            LogTimer.log("Process finished"); //Done!
+
         }  
     }
 }

@@ -3,13 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package lstm;
+package sampling;
 
 import org.nd4j.linalg.api.ndarray.INDArray;
 
 /**
- *
- * @author cssummer16
+ * Interface sampler represents functionality to take in an INDArray of probability distributions and sample an output vector from it
+ * @author Nicholas Weintraut
  */
 public interface Sampler {
     public INDArray sample(INDArray input);

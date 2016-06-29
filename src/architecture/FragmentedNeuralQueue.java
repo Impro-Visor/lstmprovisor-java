@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package lstm;
+package architecture;
 
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
@@ -11,37 +11,44 @@ import java.util.LinkedList;
 import java.util.Iterator;
 
 /**
- * Class FragmentedNeuralQueue is an implementation of a neural queue simplified for operation (cannot be used for training) of our bipartite cooperative LSTM architecture
+ * Class FragmentedNeuralQueue is an implementation of a fragmented neural queue simplified for operation (cannot be used for training) of a CompressingAutoencoder
+ * A fragmented neural queue is similar to a neural queue as proposed by Google DeepMind, but separates enqueueing and dequeueing operations
+ * by means of vector combination in the scalar space of vectors' assigned strengths.
+ * Wow. Thats the fancy definition. Really what this means is that unlike a neural queue, which pushes and pops portions of vectors over the entire queue,
+ * this fragmented queue design, on dequeue, combines vectors from the front of the queue until the total strength is 1.0, and then pops off only the first vector.
+ * It makes for a very fun interpolation between recognized features, and allows for decoding to start before an entire dataset is encoded.
+ * 
  * @author Nicholas Weintraut
  */
 public class FragmentedNeuralQueue {
     private LinkedList<INDArray> vectorList; //[index][vectorIndex]
     private LinkedList<Double> strengthList; //[index]
     private double fragmentStrength;
-    private int inputSize;
     private Double totalStrength;
     
     /**
      * Initializes FragmentedNeuralQueue instance with the given input vector size and a fragment strength of 1.
-     * @param inputSize 
      */
-    public FragmentedNeuralQueue(int inputSize)
+    public FragmentedNeuralQueue()
     {
-        this(inputSize, 1);
+        this(1);
     }
    
     /**
      * Initializes FragmentedNeuralQueue instance with the given input vector size and fragment strength
-     * @param inputSize
      * @param fragmentStrength 
      */
-    public FragmentedNeuralQueue(int inputSize, double fragmentStrength)
+    public FragmentedNeuralQueue(double fragmentStrength)
     {
         vectorList = new LinkedList<INDArray>(); 
         strengthList = new LinkedList<Double>();
         this.fragmentStrength = fragmentStrength;
-        this.inputSize = inputSize;
         totalStrength = 0.0;
+    }
+    
+    public boolean isEmpty()
+    {
+        return vectorList.isEmpty();
     }
     
     /**
@@ -82,8 +89,10 @@ public class FragmentedNeuralQueue {
      */
     public INDArray peek()
     {
+        if(!vectorList.isEmpty())
+        {
         //lets start generating the readVector
-        INDArray readVector = Nd4j.create(inputSize);
+        INDArray readVector = Nd4j.create(vectorList.peek().length());
         
         double strengthSum = 0.0;
         
@@ -108,8 +117,9 @@ public class FragmentedNeuralQueue {
                 strengthSum += currStrength;
             }
         }
-        
-        return readVector;
+            return readVector;
+        }
+        throw new RuntimeException("The neural queue is empty!!");
     }
     
     /**

@@ -5,7 +5,7 @@
  */
 package filters;
 
-import org.nd4j.linalg.api.ndarray.INDArray;
+import mikera.vectorz.AVector;
 import encoding.EncodingParameters;
 
 /**
@@ -14,7 +14,7 @@ import encoding.EncodingParameters;
  */
 public class NoteEncodingCleanFilter implements DataFilter {
     
-    public INDArray filter(INDArray input)
+    public AVector filter(AVector input)
     {
         return EncodingParameters.noteEncoder.clean(input);
     }

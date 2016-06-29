@@ -4,16 +4,16 @@
  * and open the template in the editor.
  */
 package architecture;
-import org.nd4j.linalg.api.ndarray.INDArray;
 import filters.Operations;
-import sampling.Sampler;
 import filters.GroupedSoftMaxSampler;
-import org.nd4j.linalg.factory.Nd4j;
-import org.nd4j.linalg.indexing.NDArrayIndex;
 import filters.NoteEncodingCleanFilter;
 import java.util.Queue;
 import filters.DataFilter;
 import encoding.EncodingParameters;
+
+import mikera.arrayz.INDArray;
+import mikera.vectorz.AVector;
+import mikera.vectorz.Vector;
 
 /**
  * Class CompressingAutoencoder describes a neural network architecture which bridges an LSTM encoder and decoder with a fragmented neural queue.
@@ -23,7 +23,7 @@ public class CompressingAutoEncoder implements Loadable {
     private int inputSize;
     private int featureVectorSize;
     private int outputSize;
-    private INDArray currOutput;
+    private AVector currOutput;
     private LSTM encoder1;
     private LSTM encoder2;
     private FullyConnectedLayer fullLayer1;
@@ -34,24 +34,6 @@ public class CompressingAutoEncoder implements Loadable {
     private DataFilter finalSampler;
     private DataFilter outputCleaner;
     private AutoencoderInputManager inputManager;
-    
-    
-    public CompressingAutoEncoder(int inputSize, int encoderBridge, int encoderSize, int decoderBridge, int decoderSize, int featureVectorSize, int outputSize, AutoencoderInputManager inputManager) {
-        this.inputSize = inputSize;
-        this.featureVectorSize = featureVectorSize;
-        this.outputSize = outputSize;
-        this.inputManager = inputManager;
-        encoder1 = new LSTM(inputManager.getEncoderInputSize(), encoderBridge);
-        encoder2 = new LSTM(encoderBridge, encoderSize);
-        fullLayer1 = new FullyConnectedLayer(encoderSize, featureVectorSize + 1, Operations.Sigmoid);
-        queue = new FragmentedNeuralQueue(featureVectorSize);
-        decoder1 = new LSTM(inputManager.getDecoderInputSize(), decoderBridge);
-        decoder2 = new LSTM(decoderBridge, decoderSize);
-        //op type is none because we will feed its result through a one hot softmax sampler
-        fullLayer2 = new FullyConnectedLayer(decoderSize, outputSize, Operations.None);
-        finalSampler = new GroupedSoftMaxSampler(EncodingParameters.noteEncoder.getGroups());
-        outputCleaner = new NoteEncodingCleanFilter();
-    }
     
     /**
      * Initializes an instance of CompressingAutoEncoder without initializing component weights and biases. Weights and biases should be loaded using AutoEncoderMeatPacker
@@ -80,7 +62,7 @@ public class CompressingAutoEncoder implements Loadable {
         return !queue.isEmpty();
     }
     private int timeStep = 0;
-    public void encodeStep(INDArray input) {
+    public void encodeStep(AVector input) {
         
         if(input.length() == inputSize)
         {
@@ -88,17 +70,20 @@ public class CompressingAutoEncoder implements Loadable {
             //    System.out.print(input.getDouble(i) + " ");
             //System.out.println("<- networkInput at timeStep " + timeStep++);
             inputManager.takeInput(input);
-            INDArray managerInput = inputManager.retrieveEncoderInput();
+            AVector managerInput = inputManager.retrieveEncoderInput();
             /*if(managerInput.equals(input))
                 System.out.println("Matches");
             else
                 System.out.println("err");*/
-            INDArray encoding1 = encoder1.step(managerInput);
-            
-            INDArray encoding2 = encoder2.step(encoding1);
-            INDArray vectorEncoding = fullLayer1.forward(encoding2);
-            System.out.println(vectorEncoding.getDouble(0) + " strength <- timeStep " + timeStep++);
-            queue.enqueueStep(vectorEncoding.get(NDArrayIndex.interval(1,featureVectorSize + 1)), vectorEncoding.getDouble(0));
+            //System.out.println(managerInput);
+            AVector encoding1 = encoder1.step(managerInput);
+            //System.out.println(encoding1.get(encoding1.length() - 1));
+            AVector encoding2 = encoder2.step(encoding1);
+            //System.out.println(encoding2.get(encoding2.length() - 1));
+            AVector vectorEncoding = fullLayer1.forward(encoding2);
+            //System.out.println(vectorEncoding);
+            //System.out.println(vectorEncoding.get(0) + " strength <- timeStep " + timeStep++);
+            queue.enqueueStep(vectorEncoding.subVector(1,featureVectorSize), vectorEncoding.get(0));
             
         }
         else
@@ -111,11 +96,11 @@ public class CompressingAutoEncoder implements Loadable {
         return queue.hasFullBuffer();
     }
     
-    public INDArray decodeStep() {
+    public AVector decodeStep() {
         //current output at very beginning should be a rest
-        INDArray decoding1 = decoder1.step(inputManager.retrieveDecoderInput(queue.dequeueStep(), currOutput));
-        INDArray decoding2 = decoder2.step(decoding1);
-        INDArray decoding3 = fullLayer2.forward(decoding2);
+        AVector decoding1 = decoder1.step(inputManager.retrieveDecoderInput(queue.dequeueStep(), currOutput));
+        AVector decoding2 = decoder2.step(decoding1);
+        AVector decoding3 = fullLayer2.forward(decoding2);
         //use sampler, and then apply cleaning filter
         
         /*for(int i = 0; i < decoding2.length(); i++)
@@ -160,7 +145,7 @@ public class CompressingAutoEncoder implements Loadable {
     }
     
     public void setCurrOutput(int outputSize) {
-        currOutput = Nd4j.zeros(outputSize);
+        currOutput = Vector.createLength(outputSize);
     }
     
     @Override

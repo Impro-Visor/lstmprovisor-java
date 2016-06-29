@@ -5,8 +5,9 @@
  */
 package encoding;
 
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
+
+import mikera.vectorz.AVector;
+import mikera.vectorz.Vector;
 
 /**
  * Class CirclesOfThirdsEncoder describes encoding notes using a method described in Judy Franklin's paper on lstm-improvised music
@@ -65,36 +66,36 @@ public class CirclesOfThirdsEncoder implements NoteEncoder {
     }
     
     @Override
-    public INDArray encode(int midiValue) {
-        INDArray output = Nd4j.create(getNoteLength());
+    public AVector encode(int midiValue) {
+        AVector output = Vector.createLength(getNoteLength());
         if(midiValue == sustainKey)
         {
-            output.putScalar(sustainIndex, 1.0);
+            output.set(sustainIndex, 1.0);
         }
         else if(midiValue == -1)
-            output.putScalar(restIndex, 1.0);
+            output.set(restIndex, 1.0);
         else
         {
-            output.putScalar(articulateIndex, 1.0);
+            output.set(articulateIndex, 1.0);
             int noteIndex = midiValue % 12;
             int octaveIndex = midiValue / 12 - 4;
             CirclePair circleIndexes = pitchData[noteIndex];
-            output.putScalar(majorGroup.startIndex + circleIndexes.major, 1.0);
-            output.putScalar(minorGroup.startIndex + circleIndexes.minor, 1.0);
-            output.putScalar(octaveGroup.startIndex + octaveIndex, 1.0);
+            output.set(majorGroup.startIndex + circleIndexes.major, 1.0);
+            output.set(minorGroup.startIndex + circleIndexes.minor, 1.0);
+            output.set(octaveGroup.startIndex + octaveIndex, 1.0);
         }
         return output;
     }
     
     @Override
-    public boolean hasSustain(INDArray input)
+    public boolean hasSustain(AVector input)
     {
-        return input.getDouble(sustainIndex) == 1.0;
+        return input.get(sustainIndex) == 1.0;
     }
 
     @Override
-    public int decode(INDArray input) {
-        if(input.getDouble(restIndex) == 1.0)
+    public int decode(AVector input) {
+        if(input.get(restIndex) == 1.0)
             return -1;
         else
         {
@@ -102,13 +103,13 @@ public class CirclesOfThirdsEncoder implements NoteEncoder {
             for(; pitchIndex < pitchData.length; pitchIndex++)
             {
                 CirclePair pair = pitchData[pitchIndex];
-                if(input.getDouble(majorGroup.startIndex + pair.major) == 1.0 && input.getDouble(minorGroup.startIndex + pair.minor) == 1.0)
+                if(input.get(majorGroup.startIndex + pair.major) == 1.0 && input.get(minorGroup.startIndex + pair.minor) == 1.0)
                     break;
             }
             int octaveIndex = 0;
             for(; octaveIndex < octaveGroup.length(); octaveIndex++)
             {
-                if(input.getDouble(octaveGroup.startIndex + octaveIndex) == 1.0)
+                if(input.get(octaveGroup.startIndex + octaveIndex) == 1.0)
                     break;
             }
             return ((octaveIndex + 4) * 12) + pitchIndex;
@@ -122,13 +123,12 @@ public class CirclesOfThirdsEncoder implements NoteEncoder {
     }
 
     @Override
-    public INDArray clean(INDArray input) {
-        input = input.transpose();
-        if(!(input.getDouble(articulateIndex) == 1.0))
+    public AVector clean(AVector input) {
+        if(!(input.get(articulateIndex) == 1.0))
         {
             for(Group group : new Group[]{majorGroup, minorGroup, octaveGroup})
                 for(int i = group.startIndex; i < group.endIndex; i++)
-                    input.putScalar(i, 0.0);
+                    input.set(i, 0.0);
         }
         return input;
     }

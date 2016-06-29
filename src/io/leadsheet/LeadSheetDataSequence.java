@@ -5,20 +5,21 @@
  */
 package io.leadsheet;
 
-import encoding.EncodingParameters;
-import org.nd4j.linalg.api.ndarray.INDArray;
 import java.util.Queue;
-import org.nd4j.linalg.factory.Nd4j;
 import io.DataSequence;
 import java.util.LinkedList;
+
+
+import mikera.vectorz.AVector;
+
 /**
  *
  * @author cssummer16
  */
 public class LeadSheetDataSequence implements DataSequence{
-    private Queue<INDArray> beats;
-    private Queue<INDArray> chords;
-    private Queue<INDArray> melody;
+    private Queue<AVector> beats;
+    private Queue<AVector> chords;
+    private Queue<AVector> melody;
     
     private int entrySize;
     
@@ -31,20 +32,20 @@ public class LeadSheetDataSequence implements DataSequence{
     }
     
     /**
-     * Copies this LeadSheetDataSequence by copying input LeadSheetDataSequence's beat, chord, and melody queues (It does duplicate INDArray objects!)
+     * Copies this LeadSheetDataSequence by copying input LeadSheetDataSequence's beat, chord, and melody queues (It does duplicate AVector objects!)
      * @return A duplicate of this LeadSheetDataSequence 
      */
     @Override
-    public LeadSheetDataSequence dup() {
+    public LeadSheetDataSequence copy() {
         LeadSheetDataSequence duplicate = new LeadSheetDataSequence();
-        beats.stream().forEach((beat) -> {duplicate.beats.offer(beat.dup());});
-        chords.stream().forEach((chord) -> {duplicate.chords.offer(chord.dup());});
-        melody.stream().forEach((noteStep) -> {duplicate.melody.offer(noteStep.dup());});
+        beats.stream().forEach((beat) -> {duplicate.beats.offer(beat.copy());});
+        chords.stream().forEach((chord) -> {duplicate.chords.offer(chord.copy());});
+        melody.stream().forEach((noteStep) -> {duplicate.melody.offer(noteStep.copy());});
         duplicate.entrySize = entrySize;
         return duplicate;
     }
     
-    public INDArray pollMelody() {
+    public AVector pollMelody() {
         return melody.poll();
     }
     
@@ -60,15 +61,15 @@ public class LeadSheetDataSequence implements DataSequence{
         melody = new LinkedList<>();
     }
     
-    public INDArray pollChords() {
+    public AVector pollChords() {
         return chords.poll();
     }
     
-    public INDArray pollBeats() {
+    public AVector pollBeats() {
         return beats.poll();
     }
     
-    public void pushStep(INDArray beat, INDArray chord, INDArray note) {
+    public void pushStep(AVector beat, AVector chord, AVector note) {
         if(beat != null) {
             this.beats.offer(beat);
         }
@@ -94,8 +95,8 @@ public class LeadSheetDataSequence implements DataSequence{
     }
     
     @Override
-    public INDArray retrieve() {
-        return Nd4j.concat(0, beats.poll(), chords.poll(), melody.poll());
+    public AVector retrieve() {
+        return beats.poll().join(chords.poll()).join(melody.poll());
     }
     
     @Override

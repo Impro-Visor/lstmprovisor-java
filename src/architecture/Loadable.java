@@ -5,7 +5,7 @@
  */
 package architecture;
 
-import org.nd4j.linalg.api.ndarray.INDArray;
+import mikera.arrayz.INDArray;
 
 /**
  *

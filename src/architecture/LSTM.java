@@ -5,10 +5,10 @@
  */
 package architecture;
 
-import org.nd4j.linalg.ops.transforms.Transforms;
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
-import org.nd4j.linalg.indexing.NDArrayIndex;
+import filters.Operations;
+import mikera.matrixx.AMatrix;
+import mikera.vectorz.AVector;
+import mikera.arrayz.INDArray;
 //import org.nd4j.linalg.api.shape.
 
 /**
@@ -20,58 +20,33 @@ public class LSTM implements Loadable{
     
     
     //the state of the cell after last operation, will be fed back into node.
-    public INDArray cellState;
+    public AVector cellState;
     //the result Ht of the node
-    public INDArray result;
+    public AVector result;
     //The weights of the nodes activations, stored as a 3 dimensional array comprised of the 2 dimensional weight matrices for each activation
-    INDArray[] weights;
-    INDArray activationWeights;
-    INDArray inputWeights;
-    INDArray forgetWeights;
-    INDArray outputWeights;
+    AMatrix[] weights;
+    AMatrix activationWeights;
+    AMatrix inputWeights;
+    AMatrix forgetWeights;
+    AMatrix outputWeights;
     
     //The default bias values which the weighted activations will operate on, stored as a 2 dimensional array comprised of bias vectors for each activation
-    INDArray[] biases;
-    INDArray activationBiases;
-    INDArray inputBiases;
-    INDArray forgetBiases;
-    INDArray outputBiases;
+    AVector[] biases;
+    AVector activationBiases;
+    AVector inputBiases;
+    AVector forgetBiases;
+    AVector outputBiases;
     
-    INDArray[] sigmoidLayers;
-    INDArray[] sigmoidMult1;
-    INDArray tanhLayer;
-    
-    
-    public LSTM(int inputSize, int outputSize)
-    {
-        //biases should have columns for 4 activations and rows for each output     
-        //weights should have entries for 4 activations, columns for each input, and rows for each output
-
-        activationWeights = Nd4j.rand(new int[]{outputSize, inputSize + outputSize}).mul(2.0).sub(1.0);
-        inputWeights = Nd4j.rand(new int[]{outputSize, inputSize + outputSize}).mul(2.0).sub(1.0);
-        forgetWeights = Nd4j.rand(new int[]{outputSize, inputSize + outputSize}).mul(2.0).sub(1.0);
-        outputWeights = Nd4j.rand(new int[]{outputSize, inputSize + outputSize}).mul(2.0).sub(1.0);
-        this.weights = new INDArray[]{inputWeights, forgetWeights, outputWeights, activationWeights};
-        
-        activationBiases = Nd4j.rand(new int[]{outputSize}).mul(2.0).sub(1.0);
-        inputBiases = Nd4j.rand(new int[]{outputSize}).mul(2.0).sub(1.0);
-        forgetBiases = Nd4j.rand(new int[]{outputSize}).mul(2.0).sub(1.0);
-        outputBiases = Nd4j.rand(new int[]{outputSize}).mul(2.0).sub(1.0);
-        this.biases = new INDArray[]{inputBiases, forgetBiases, outputBiases, activationBiases};
-        
-        //initialize cellState and result to be of output size, and initialize result to all zeros
-        this.cellState = Nd4j.create(outputSize);
-        this.result = Nd4j.zeros(outputSize);
-        this.sigmoidLayers = new INDArray[3];
-        this.sigmoidMult1 = new INDArray[3];
-    }
+    AVector[] sigmoidLayers;
+    AVector[] sigmoidMult1;
+    AVector tanhLayer;
     
     public LSTM()
     {
-        weights = new INDArray[4];
-        biases = new INDArray[4];
-        sigmoidLayers = new INDArray[3];
-        sigmoidMult1 = new INDArray[3];
+        weights = new AMatrix[4];
+        biases = new AVector[4];
+        sigmoidLayers = new AVector[3];
+        sigmoidMult1 = new AVector[3];
     }
     
     public void initWeights()
@@ -95,81 +70,82 @@ public class LSTM implements Loadable{
      * @param input The input vector to push through
      * @return The result vector
      */
-    public INDArray step(INDArray input)
+    public AVector step(AVector input)
     {
-        
-        System.out.println(input);
-        //concatenate result vector onto the end of input vector, dimension zero as it is 1-dimensional INDArray
-        System.out.println(result);
-        input = Nd4j.concat(0, input, result);
-        System.out.println(input);
-        input = input.transposei();
+
+        //concatenate result vector onto the end of input vector, dimension zero as it is 1-dimensional AVector
+        //System.out.println(input);
+        //System.out.println(result);
+        input = input.join(result);
+        //System.out.println(input);
         //System.out.println(input.rows());
         /* There are 4 layers in LSTM, in order of sig(0) sig(1) sig(2) tanh(3) */
         //For each sigmoid layer, multiply its weight matrix by the input vector, add its bias vector, and perform sigmoid operation on resultant vector
         for(int i = 0; i <  3; i++)
         {
-            System.out.println(weights[i].columns());
-            System.out.println(input.rows());
-            System.out.println(input.columns());
             //System.out.println(weights[i].columns());
             //The "columns" of the weights 3d matrix should represent the two-dimensional matrices for each of the activations.
-            if(sigmoidMult1[i] == null)
-                sigmoidMult1[i] = weights[i].mmul(input);
-            else
-                sigmoidMult1[i] = weights[i].mmul(input);            
-           if(sigmoidLayers[i] == null)
-                sigmoidLayers[i] = Transforms.sigmoid(sigmoidMult1[i].transpose().add(biases[i]));
+            sigmoidMult1[i] = weights[i].innerProduct(input);
+            //System.out.println(sigmoidMult1[i]);
+            sigmoidMult1[i].add(biases[i]);      
+            //System.out.println(sigmoidMult1[i]);
+            sigmoidLayers[i] = Operations.Sigmoid.operate(sigmoidMult1[i]);
+            //System.out.println(sigmoidLayers[i]);
 
         }
         //Calculate tanh layer in same fashion as sigmoid layer, but with tanh activation function
-        if(tanhLayer == null)
-            tanhLayer = weights[3].mmul(input);
-        else
-            tanhLayer = weights[3].mmul(input);
-        tanhLayer = Transforms.tanh(tanhLayer.transpose().add(biases[3]));
+        tanhLayer = weights[3].innerProduct(input);
+        tanhLayer.add(biases[3]);
+        tanhLayer = Operations.Tanh.operate(tanhLayer);
         
         //do the first element-wise multiplication: sigmoid layer 1 and the current cell state
-        INDArray multOp1 = sigmoidLayers[0].mul(cellState);
-        
+        sigmoidLayers[0].multiply(cellState);
+        //System.out.println("multiplication of forget and cell state: " + sigmoidLayers[0]);
         //do the second element-wise multiplication: sigmoid layer 2 and the tanh layer
-        INDArray multOp2 = sigmoidLayers[1].mul(tanhLayer);
-
-        cellState = multOp1.add(multOp2);
+        sigmoidLayers[1].multiply(tanhLayer);
+        //System.out.println("multiplication of input and activation layer: " + sigmoidLayers[1]);
+        sigmoidLayers[0].add(sigmoidLayers[1]);
+        //System.out.println("addition of " + sigmoidLayers[1]);
+        cellState = sigmoidLayers[0];
+        sigmoidLayers[0] = null;
+        sigmoidLayers[1] = null;
         
-        INDArray tanhOp = Transforms.tanh(cellState);
-        result = sigmoidLayers[2].mul(tanhOp);
+        AVector tanhOp = Operations.Tanh.operate(cellState.copy());
+        sigmoidLayers[2].multiply(tanhOp);
+        result = sigmoidLayers[2];
+        sigmoidLayers[2] = null;
         
-        return result.dup();
+        return result.copy();
     }
 
     @Override
     public boolean load(INDArray data, String loadPath) {
         boolean found = true;
         switch(loadPath){
-            case "activate_b":  activationBiases = data;
+            case "activate_b":  activationBiases = (AVector) data;
                                 break;
-            case "activate_w":  activationWeights = data;
+            case "activate_w":  activationWeights = (AMatrix) data;
                                 break;
-            case "forget_b":    forgetBiases = data;
+            case "forget_b":    forgetBiases = (AVector) data;
                                 break;
-            case "forget_w":    forgetWeights = data;
+            case "forget_w":    forgetWeights = (AMatrix) data;
                                 break;
-            case "input_b":     inputBiases = data;                          
+            case "input_b":     inputBiases = (AVector) data;                          
                                 break;
             case "input_w":     
-                                inputWeights = data;
+                                inputWeights = (AMatrix) data;
                                 break;
             case "out_b":
                                 
-                                outputBiases = data;
+                                outputBiases = (AVector) data;
                                 break;
             case "out_w":       
-                                outputWeights = data;
+                                outputWeights = (AMatrix) data;
                                 break;
-            case "initialstate":    cellState = data.get(NDArrayIndex.interval(0, data.length()/2));
+            case "initialstate":    AVector dataCast = (AVector) data;
+                                    cellState = dataCast.subVector(0, (dataCast.length()/2)).dense();
                                     //System.out.println(cellState);
-                                    result = data.get(NDArrayIndex.interval(data.length()/2, data.length()));
+                                    result = dataCast.subVector(dataCast.length()/2, dataCast.length()/2).dense();
                                     break;
             default: found = false;
                     break;

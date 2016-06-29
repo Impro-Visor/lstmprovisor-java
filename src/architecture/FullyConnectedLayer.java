@@ -6,8 +6,10 @@
 package architecture;
 
 import filters.Operations;
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
+import mikera.arrayz.INDArray;
+import mikera.vectorz.AVector;
+import mikera.vectorz.Vector;
+import mikera.matrixx.AMatrix;
 
 /**
  * Class FullyConnectedLayer is an implementation of a simple neural network layer which multiplies inputs by a weight matrix and adds biases,
@@ -16,39 +18,32 @@ import org.nd4j.linalg.factory.Nd4j;
  */
 public class FullyConnectedLayer implements Loadable {
     
-    private INDArray weights;
-    private INDArray biases;
+    private AMatrix weights;
+    private AVector biases;
     private Operations type;
     
-    private INDArray multResult;
-    
-    
-    public FullyConnectedLayer (int inputSize, int outputSize, Operations type)
-    {
-        this.weights = Nd4j.rand(new int[]{outputSize, inputSize}).mul(2.0).sub(1.0);
-        this.biases = Nd4j.rand(new int[]{outputSize}).mul(2.0).sub(1.0);
-        this.type = type;
-    }
+    private AVector multResult;
     
     public FullyConnectedLayer (Operations type)
     {
         this.type = type;
     }
     
-    public INDArray forward (INDArray input)
+    public AVector forward (AVector input)
     {
-            if(multResult == null)
-                multResult = type.operate(weights.mmul(input.transpose()));
-            return type.operate(weights.mmul(input.transpose(), multResult));
+            
+            multResult = weights.innerProduct(input);
+            multResult.add(biases);
+            return type.operate(multResult);
     }
 
     @Override
     public boolean load(INDArray data, String loadPath) {
         switch(loadPath)
         {
-            case "b":   this.biases = data;
+            case "b":   this.biases = (AVector) data;
                         return true;
-            case "w":   this.weights = data;
+            case "w":   this.weights = (AMatrix) data;
                         return true;
             default:    return false;
         }

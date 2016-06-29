@@ -5,8 +5,9 @@
  */
 package architecture;
 
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
+import java.util.Collections;
+import mikera.vectorz.AVector;
+import mikera.vectorz.Vector;
 import java.util.LinkedList;
 import java.util.Iterator;
 
@@ -21,7 +22,7 @@ import java.util.Iterator;
  * @author Nicholas Weintraut
  */
 public class FragmentedNeuralQueue {
-    private LinkedList<INDArray> vectorList; //[index][vectorIndex]
+    private LinkedList<AVector> vectorList; //[index][vectorIndex]
     private LinkedList<Double> strengthList; //[index]
     private double fragmentStrength;
     private Double totalStrength;
@@ -40,7 +41,7 @@ public class FragmentedNeuralQueue {
      */
     public FragmentedNeuralQueue(double fragmentStrength)
     {
-        vectorList = new LinkedList<INDArray>(); 
+        vectorList = new LinkedList<AVector>(); 
         strengthList = new LinkedList<Double>();
         this.fragmentStrength = fragmentStrength;
         totalStrength = 0.0;
@@ -57,7 +58,7 @@ public class FragmentedNeuralQueue {
      * @param enqueueSignal
 
      */
-    public void enqueueStep(INDArray inputVector, double enqueueSignal)
+    public void enqueueStep(AVector inputVector, double enqueueSignal)
     {
         //System.out.println("are we gonna do it");
         //add inputVector to valueMatrix
@@ -71,6 +72,21 @@ public class FragmentedNeuralQueue {
         strengthList.add(enqueueSignal);
         
         totalStrength += enqueueSignal;
+    }
+    
+    public void shuffleVectors()
+    {
+        Collections.shuffle(vectorList);
+    }
+    
+    public void shuffleQueue()
+    {
+        
+    }
+    
+    public void shuffleStrengths()
+    {
+        Collections.shuffle(strengthList);
     }
     
     /**
@@ -87,33 +103,37 @@ public class FragmentedNeuralQueue {
      * A vector is scaled by a portion of their strength if their strength would overfill the fragment.
      * @return The sampled vector
      */
-    public INDArray peek()
+    public AVector peek()
     {
         if(!vectorList.isEmpty())
         {
         //lets start generating the readVector
-        INDArray readVector = Nd4j.create(vectorList.peek().length());
+        AVector readVector = Vector.createLength(vectorList.peek().length());
         
         double strengthSum = 0.0;
         
-        Iterator<INDArray> vectorIterator = vectorList.iterator();
+        Iterator<AVector> vectorIterator = vectorList.iterator();
         Iterator<Double> strengthIterator = strengthList.iterator();
         //while we have not reached the strength limit for our fragment
         while(strengthSum < fragmentStrength && vectorIterator.hasNext())
         {
-            INDArray currVector = vectorIterator.next();
+            AVector currVector = vectorIterator.next();
             //System.out.println(currVector.length());
             double currStrength = strengthIterator.next();
             //if our strengthSum would exceed our fragment strength, only take the portion needed to fill it
             if(strengthSum + currStrength > fragmentStrength)
             {
-                readVector.add(currVector.mul(fragmentStrength - strengthSum));
+                AVector currVectorCopy = currVector.copy();
+                currVectorCopy.multiply(fragmentStrength - strengthSum);
+                readVector.add(currVectorCopy);
                 strengthSum = fragmentStrength;
             }
             //if we have space left, we'll simply multiply the current vector by it's scale and add it.
             else
             {
-                readVector.add(currVector.mul(currStrength));
+                AVector currVectorCopy = currVector.copy();
+                currVectorCopy.multiply(currStrength);
+                readVector.add(currVectorCopy);
                 strengthSum += currStrength;
             }
         }
@@ -125,9 +145,9 @@ public class FragmentedNeuralQueue {
     /**
      * Removes an element of the queue in first-in, first-out order.
      */
-    public INDArray dequeueStep()
+    public AVector dequeueStep()
     {
-        INDArray result = this.peek();
+        AVector result = this.peek();
         vectorList.remove(0);
         totalStrength -= strengthList.remove(0);
         return result;

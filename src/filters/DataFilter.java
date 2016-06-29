@@ -4,13 +4,12 @@
  * and open the template in the editor.
  */
 package filters;
-
-import org.nd4j.linalg.api.ndarray.INDArray;
+import mikera.vectorz.AVector;
 
 /**
  *
  * @author cssummer16
  */
 public interface DataFilter {
-    public INDArray filter(INDArray input);
+    public AVector filter(AVector input);
 }

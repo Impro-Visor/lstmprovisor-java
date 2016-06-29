@@ -4,9 +4,10 @@
  * and open the template in the editor.
  */
 package architecture;
-import org.nd4j.linalg.api.ndarray.INDArray;
+
 import java.util.Queue;
 import java.util.LinkedList;
+import mikera.vectorz.AVector;
 /**
  * Class AutoencoderInputManager takes in the initial input for an Autoencoder and handles 
  * chopping up data that should go to either the encoder, decoder, or both 
@@ -15,18 +16,18 @@ import java.util.LinkedList;
  * @author Nicholas Weintraut
  */
 public abstract class AutoencoderInputManager {
-    protected Queue<INDArray> encoderQueue;
-    protected Queue<INDArray> decoderQueue;
+    protected Queue<AVector> encoderQueue;
+    protected Queue<AVector> decoderQueue;
     
     public AutoencoderInputManager()
     {
-        encoderQueue = new LinkedList<INDArray>();
-        decoderQueue = new LinkedList<INDArray>();
+        encoderQueue = new LinkedList<AVector>();
+        decoderQueue = new LinkedList<AVector>();
     }
-    public void takeInput(INDArray input)
+    public void takeInput(AVector input)
     {
         encoderQueue.offer(input);
-        decoderQueue.offer(input.dup());
+        decoderQueue.offer(input.copy());
     }
     
     public abstract int getEncoderInputSize();
@@ -35,7 +36,7 @@ public abstract class AutoencoderInputManager {
     public abstract int getDecoderInputSize();
             
     
-    public abstract INDArray retrieveEncoderInput();
+    public abstract AVector retrieveEncoderInput();
     
-    public abstract INDArray retrieveDecoderInput(INDArray neuralQueueOutput, INDArray decoderOutput);
+    public abstract AVector retrieveDecoderInput(AVector neuralQueueOutput, AVector decoderOutput);
 }

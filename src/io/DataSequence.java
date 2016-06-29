@@ -4,15 +4,15 @@
  * and open the template in the editor.
  */
 package io;
-import org.nd4j.linalg.api.ndarray.INDArray;
+import mikera.vectorz.AVector;
 
 /**
- * Interface DataSequence describes commands to retrieve sequential INDArray data
+ * Interface DataSequence describes commands to retrieve sequential AVector data
  * @author Nicholas Weintraut
  */
 public interface DataSequence {
-    public INDArray retrieve();
+    public AVector retrieve();
     public boolean hasNext();
     public int entrySize();
-    public<T extends DataSequence> T dup();
+    public<T extends DataSequence> T copy();
 }

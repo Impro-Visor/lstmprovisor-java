@@ -8,8 +8,11 @@ package nickd4j;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
+import mikera.arrayz.INDArray;
+import mikera.vectorz.AVector;
+import mikera.vectorz.Vector;
+import mikera.matrixx.AMatrix;
+import mikera.matrixx.Matrix;
 
 /**
  *
@@ -33,15 +36,20 @@ public class ReadUtilities {
             }
             //will get an error if you don't have any data, so don't do that lol
             int[] shape = new int[]{contents.size(), contents.get(0).length};
-            INDArray readArray = Nd4j.create(shape);
+            AMatrix readArray = Matrix.create(shape);
             for(int rowIndex = 0; rowIndex < contents.size(); rowIndex++){
                 String[] line = contents.get(rowIndex);
                 for(int colIndex = 0; colIndex < line.length; colIndex++){
-                    readArray.putScalar(new int[]{rowIndex, colIndex}, Double.valueOf(line[colIndex]));
+                    readArray.set(new int[]{rowIndex, colIndex}, Double.valueOf(line[colIndex]));
                 }
             }
-            
-            return readArray;
+            if(shape[1] == 1) {
+                AVector readVector = readArray.asVector();
+                return readVector;
+            }
+            else {
+                return readArray;
+            }
             
             
         } catch(Exception e)

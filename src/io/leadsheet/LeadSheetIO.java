@@ -15,9 +15,12 @@ import encoding.NoteEncoder;
 import encoding.ChordEncoder;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
 import java.util.ArrayList;
+
+import mikera.vectorz.Vector;
+import mikera.vectorz.AVector;
+
+
 /**
  *
  * @author cssummer16
@@ -38,7 +41,7 @@ public class LeadSheetIO {
         {
             if(note.isRest())
             {
-                INDArray encoding = noteEncoder.encode(note.getMIDI());
+                AVector encoding = noteEncoder.encode(note.getMIDI());
                 for(int remaining = (note.getDuration() /Constants.RESOLUTION_SCALAR); remaining > 0 ; remaining--) {
                     sequence.pushStep(null, null, encoding);
                     noteSteps++;
@@ -60,36 +63,40 @@ public class LeadSheetIO {
         {
             //System.out.println(chord.getRoot() + chord.getType());
             //System.out.println(chord.getDuration());
-            INDArray chordData = chordEncoder.encode(chord.getRoot(), chord.getType());
+            AVector chordData = chordEncoder.encode(chord.getRoot(), chord.getType());
+            if(chordData == null)
+            {
+                System.out.println(chord.getType());
+            }
             //System.out.println(chordData);
             for(int remaining = chord.getDuration(); remaining > 0; remaining--) {
                 chordSteps++;
-                sequence.pushStep(null, chordData.dup(), null);
+                sequence.pushStep(null, chordData.copy(), null);
             }
         }
         System.out.println("Note steps: " + noteSteps + " Chord steps: " + chordSteps);
         
         for(int timeStep = 0; timeStep < noteSteps; timeStep++)
         {
-            INDArray beat = Nd4j.create(9);
+            AVector beat = Vector.createLength(9);
             if(timeStep % (Constants.WHOLE / Constants.RESOLUTION_SCALAR) == 0)
-                beat.putScalar(0, 1.0);
+                beat.set(0, 1.0);
             if(timeStep % (Constants.HALF / Constants.RESOLUTION_SCALAR) == 0)
-                beat.putScalar(1, 1.0);
+                beat.set(1, 1.0);
             if(timeStep % (Constants.QUARTER / Constants.RESOLUTION_SCALAR) == 0)
-                beat.putScalar(2, 1.0);
+                beat.set(2, 1.0);
             if(timeStep % (Constants.EIGHTH / Constants.RESOLUTION_SCALAR) == 0)
-                beat.putScalar(3, 1.0);
+                beat.set(3, 1.0);
             if(timeStep % (Constants.SIXTEENTH / Constants.RESOLUTION_SCALAR) == 0)
-                beat.putScalar(4, 1.0);
+                beat.set(4, 1.0);
             if(timeStep % (Constants.HALF_TRIPLET / Constants.RESOLUTION_SCALAR) == 0)
-                beat.putScalar(5, 1.0);
+                beat.set(5, 1.0);
             if(timeStep % (Constants.QUARTER_TRIPLET / Constants.RESOLUTION_SCALAR) == 0)
-                beat.putScalar(6, 1.0);
+                beat.set(6, 1.0);
             if(timeStep % (Constants.EIGHTH_TRIPLET / Constants.RESOLUTION_SCALAR) == 0)
-                beat.putScalar(7, 1.0);
+                beat.set(7, 1.0);
             if(timeStep % (Constants.SIXTEENTH_TRIPLET / Constants.RESOLUTION_SCALAR) == 0)
-                beat.putScalar(8, 1.0);
+                beat.set(8, 1.0);
             sequence.pushStep(beat, null, null);    
         }
         
@@ -206,9 +213,9 @@ public class LeadSheetIO {
             if(data.hasMelodyLeft()) {
                 NoteEncoder noteEncoder = EncodingParameters.noteEncoder;
                 int noteValue = 0;  //The variable to keep track of the current note's midi value
-                INDArray firstMelodyStep = data.pollMelody();
+                AVector firstMelodyStep = data.pollMelody();
                 for(int i = 0; i < firstMelodyStep.length(); i++)
-                        System.out.print(firstMelodyStep.getDouble(i) + " ");
+                        System.out.print(firstMelodyStep.get(i) + " ");
                     System.out.println();
                 if(noteEncoder.hasSustain(firstMelodyStep)) {
                     System.err.println("ERROR: first beat of bit-vector sustained");
@@ -219,9 +226,9 @@ public class LeadSheetIO {
                 }
                 int duration = 1;
                 while(data.hasMelodyLeft()) {
-                    INDArray nextStep = data.pollMelody();
+                    AVector nextStep = data.pollMelody();
                     for(int i = 0; i < nextStep.length(); i++)
-                        System.out.print(nextStep.getDouble(i) + " ");
+                        System.out.print(nextStep.get(i) + " ");
                     System.out.println("<- generated melody step");
                     if(noteEncoder.hasSustain(nextStep))
                         System.out.println("sustain");

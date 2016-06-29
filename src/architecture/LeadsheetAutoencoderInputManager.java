@@ -5,9 +5,7 @@
  */
 package architecture;
 
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
-import org.nd4j.linalg.indexing.NDArrayIndex;
+import mikera.vectorz.AVector;
 
 /**
  *
@@ -39,14 +37,14 @@ public class LeadsheetAutoencoderInputManager extends AutoencoderInputManager{
     }
 
     @Override
-    public INDArray retrieveEncoderInput() {
+    public AVector retrieveEncoderInput() {
         return encoderQueue.poll();
     }
 
     @Override
-    public INDArray retrieveDecoderInput(INDArray neuralQueueOutput, INDArray decoderOutput) {
+    public AVector retrieveDecoderInput(AVector neuralQueueOutput, AVector decoderOutput) {
         //currently we don't do anything with the decoder size
-        return Nd4j.concat(0, decoderQueue.peek().get(NDArrayIndex.interval(0, decoderQueue.poll().length() - noteSize)), neuralQueueOutput);
+        return decoderQueue.peek().subVector(0, decoderQueue.poll().length() - noteSize).join(neuralQueueOutput);
     }
 
     @Override

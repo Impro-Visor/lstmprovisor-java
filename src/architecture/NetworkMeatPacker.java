@@ -11,8 +11,7 @@ import java.io.FilenameFilter;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
+import mikera.arrayz.INDArray;
 
 /**
  *

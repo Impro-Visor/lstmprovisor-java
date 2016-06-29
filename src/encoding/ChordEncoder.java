@@ -5,9 +5,9 @@
  */
 package encoding;
 import java.util.Map.Entry;
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
-import org.nd4j.linalg.indexing.NDArrayIndex;
+
+import mikera.vectorz.AVector;
+import mikera.vectorz.Vector;
 
 /**
  * Class ChordEncoder describes encoding and decoding procedures from chord names to bit vectors and vice-versa
@@ -17,24 +17,29 @@ public class ChordEncoder {
     
     public ChordEncoder(){}
     
-    public INDArray encode(String root, String type)
+    public AVector encode(String root, String type)
     {
-        INDArray chordData = CHORD_TYPES.getValue(type);
+        AVector chordData = CHORD_TYPES.getValue(type);
         //System.out.println();
         //for(int i = 0; i < chordData.length(); i++)
         //    System.out.print(chordData.getDouble(i) + " ");
         //System.out.println();
         //System.out.println(CHORD_TYPES.getKey(chordData));
-        INDArray transposedData = transposeChordData(CHORD_TYPES.getValue(type), (int) DISTANCES_FROM_C.getValue(root).intValue());
+        if(chordData == null)
+            return null;
+        else
+        {
+        AVector transposedData = transposeChordData(CHORD_TYPES.getValue(type), (int) DISTANCES_FROM_C.getValue(root).intValue());
         //System.out.println(decode(transposedData));
         //System.out.println();
         //for(int i = 0; i < transposedData.length(); i++)
         //    System.out.print(transposedData.getDouble(i) + " ");
         //System.out.println();
         return transposedData;
+        }
     }
     
-    public String decode(INDArray chordData) {
+    public String decode(AVector chordData) {
         
         String type = null;
         boolean foundC = false;
@@ -43,7 +48,7 @@ public class ChordEncoder {
             //for(int i = 0; i < chordData.length(); i++)
             //        System.out.print(chordData.getDouble(i) + " ");
             //System.out.println("<- transposition " +  transposition);
-            for(Entry<String, INDArray> entry : CHORD_TYPES.entrySet())
+            for(Entry<String, AVector> entry : CHORD_TYPES.entrySet())
             {
                 if(chordData.equals(entry.getValue()))
                     type = entry.getKey();
@@ -67,30 +72,30 @@ public class ChordEncoder {
             return DISTANCES_FROM_C.getKey(transposition) + type;
     }
     
-    public INDArray transposeChordData(INDArray chordData, int distance)
+    public AVector transposeChordData(AVector chordData, int distance)
     {
-        //we check if distance is zero and simply return for simplicity, but also because Nd4j has a bug where passing (length, length) gives an INDArray of size 1
-        //also Nd4j concat, when given an INDArray of size 1 and another INDArray, returns a two dimensional array with only two ELEMENTS...no matter the size of the second array
+        //we check if distance is zero and simply return for simplicity, but also because Nd4j has a bug where passing (length, length) gives an AVector of size 1
+        //also Nd4j concat, when given an AVector of size 1 and another AVector, returns a two dimensional array with only two ELEMENTS...no matter the size of the second array
         //yay nd4j $wag
         if(distance == 0)
             return chordData;
         else
         {
-            INDArray part1;
-            INDArray part2;
+            AVector part1;
+            AVector part2;
             if(distance > 0)
             {
-                part1 = chordData.get(NDArrayIndex.interval(chordData.length() - (distance % chordData.length()), chordData.length()));
-                part2 = chordData.get(NDArrayIndex.interval(0, chordData.length() - (distance % chordData.length())));
+                part1 = chordData.subVector(chordData.length() - (distance % chordData.length()), distance);
+                part2 = chordData.subVector(0, chordData.length() - distance);
             }
             else
             {
-                part1 = chordData.get(NDArrayIndex.interval((-1 * distance) % chordData.length(), chordData.length()));
-                part2 = chordData.get(NDArrayIndex.interval(0, (-1 * distance) % chordData.length()));          
+                part1 = chordData.subVector((-1 * distance) % chordData.length(), chordData.length() + distance);
+                part2 = chordData.subVector(0, (-1 * distance));          
             }
             //System.out.println(part1);
             //System.out.println(part2);
-            INDArray concatenated = Nd4j.concat(0, part1, part2);
+            AVector concatenated = part1.join(part2).dense();
             /*System.out.println();
             for(int i = 0; i < concatenated.length(); i++)
                 System.out.print(concatenated.getDouble(i) + " ");
@@ -99,125 +104,125 @@ public class ChordEncoder {
         }
     }
     
-    public final static INDArray NO_CHORD         = Nd4j.create(new double[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
-    public final static INDArray C_MAJOR          = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0});
-    public final static INDArray C_MAJOR_7        = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1});
-    public final static INDArray C_MINOR_7        = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C_DOM_7          = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C_MINOR_9        = Nd4j.create(new double[]{1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0});
-    public final static INDArray C_13             = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0});
-    public final static INDArray C_MINOR_7_FLAT_5 = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0});
-    public final static INDArray C_DOM_7_SHARP_9  = Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C_DOM_7_FLAT_9   = Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C_DIM_7          = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0});
-    public final static INDArray C_9              = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C_MAJOR_9        = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1});
-    public final static INDArray C_DOM_7_SHARP_11 = Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C_MAJOR_7_SHARP_11= Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1});
-    public final static INDArray C_6              = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0});
-    public final static INDArray C_7_ALT          = Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray NC              = Nd4j.create(new double[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
-    public final static INDArray C		= Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0});
-    public final static INDArray CM		= Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0});
-    public final static INDArray Cm_sharp_5	= Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0});
-    public final static INDArray Cm_plus_        = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0});
-    public final static INDArray Cm		= Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0});
-    public final static INDArray Cm11_sharp_5	= Nd4j.create(new double[]{1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0});
-    public final static INDArray Cm11		= Nd4j.create(new double[]{1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0});
-    public final static INDArray Cm11b5          = Nd4j.create(new double[]{1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0});
-    public final static INDArray Cm13            = Nd4j.create(new double[]{1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0});
-    public final static INDArray Cm6             = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0});
-    public final static INDArray Cm69            = Nd4j.create(new double[]{1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0});
-    public final static INDArray Cm7_sharp_5	= Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray Cm7             = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray Cm7b5           = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0});
-    public final static INDArray Ch7              = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0});
-    public final static INDArray Cm9_sharp_5	= Nd4j.create(new double[]{1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray Cm9             = Nd4j.create(new double[]{1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0});
-    public final static INDArray Cm9b5           = Nd4j.create(new double[]{1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0});
-    public final static INDArray CmM7            = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1});
-    public final static INDArray CmM7b6          = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1});
-    public final static INDArray CmM9            = Nd4j.create(new double[]{1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1});
-    public final static INDArray Cmadd9          = Nd4j.create(new double[]{1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0});
-    public final static INDArray Cmb6            = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0});
-    public final static INDArray Cmb6M7          = Nd4j.create(new double[]{1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1});
-    public final static INDArray Cmb6b9          = Nd4j.create(new double[]{1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0});
-    public final static INDArray CM_sharp_5	= Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0});
-    public final static INDArray C_plus_         = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0});
-    public final static INDArray Caug            = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0});
-    public final static INDArray C_plus_7        = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray CM_sharp_5add9	= Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0});
-    public final static INDArray CM7_sharp_5	= Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1});
-    public final static INDArray CM7_plus_	= Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1});
-    public final static INDArray CM9_sharp_5	= Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1});
-    public final static INDArray C_plus_add9	= Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0});
-    public final static INDArray C7              = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C7_sharp_5	= Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray C7_plus_        = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray Caug7           = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray C7aug           = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray C7_sharp_5_sharp_9	= Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray C7alt           = Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray C7b13           = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0});
-    public final static INDArray C7b5_sharp_9	= Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray C7b5            = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0});
-    public final static INDArray C7b5b13         = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0});
-    public final static INDArray C7b5b9          = Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0});
-    public final static INDArray C7b5b9b13	= Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0});
-    public final static INDArray C7b6            = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0});
-    public final static INDArray C7b9_sharp_11	= Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0});
-    public final static INDArray C7b9_sharp_11b13	= Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0});
-    public final static INDArray C7b9            = Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C7b9b13_sharp_11	= Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0});
-    public final static INDArray C7b9b13         = Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0});
-    public final static INDArray C7no5           = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0});
-    public final static INDArray C7_sharp_11	= Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0});
-    public final static INDArray C7_sharp_11b13	= Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0});
-    public final static INDArray C7_sharp_5b9_sharp_11	= Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0});
-    public final static INDArray C7_sharp_5b9            = Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray C7_sharp_9_sharp_11	= Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0});
-    public final static INDArray C7_sharp_9_sharp_11b13	= Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0});
-    public final static INDArray C7_sharp_9	= Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C7_sharp_9b13	= Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0});
-    public final static INDArray C9              = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C9_sharp_5	= Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray C9_plus_        = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0});
-    public final static INDArray C9_sharp_11	= Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0});
-    public final static INDArray C9_sharp_11b13	= Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0});
-    public final static INDArray C9_sharp_5_sharp_11	= Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0});
-    public final static INDArray C9b13           = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0});
-    public final static INDArray C9b5            = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0});
-    public final static INDArray C9b5b13         = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0});
-    public final static INDArray C9no5           = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0});
-    public final static INDArray C13_sharp_11	= Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0});
-    public final static INDArray C13_sharp_9_sharp_11	= Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0});
-    public final static INDArray C13_sharp_9	= Nd4j.create(new double[]{1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0});
-    public final static INDArray C13             = Nd4j.create(new double[]{1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0});
-    public final static INDArray C13b5           = Nd4j.create(new double[]{1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0});
-    public final static INDArray C13b9_sharp_11	= Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0});
-    public final static INDArray C13b9           = Nd4j.create(new double[]{1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0});
-    public final static INDArray CMsus2          = Nd4j.create(new double[]{1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0});
-    public final static INDArray CMsus4          = Nd4j.create(new double[]{1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0});
-    public final static INDArray Csus2           = Nd4j.create(new double[]{1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0});
-    public final static INDArray Csus4           = Nd4j.create(new double[]{1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0});
-    public final static INDArray Csusb9          = Nd4j.create(new double[]{1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0});
-    public final static INDArray C7b9b13sus4	= Nd4j.create(new double[]{1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0});
-    public final static INDArray C7b9sus         = Nd4j.create(new double[]{1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0});
-    public final static INDArray C7b9sus4        = Nd4j.create(new double[]{1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C7sus           = Nd4j.create(new double[]{1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C7sus4          = Nd4j.create(new double[]{1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C7sus4b9        = Nd4j.create(new double[]{1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C7sus4b9b13	= Nd4j.create(new double[]{1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0});
-    public final static INDArray C7susb9         = Nd4j.create(new double[]{1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C9sus4          = Nd4j.create(new double[]{1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C9sus           = Nd4j.create(new double[]{1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C11             = Nd4j.create(new double[]{1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0});
-    public final static INDArray C13sus          = Nd4j.create(new double[]{1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0});
-    public final static INDArray C13sus4         = Nd4j.create(new double[]{1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0});
-    public final static INDArray CBlues          = Nd4j.create(new double[]{1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0});
-    public final static INDArray CBass           = Nd4j.create(new double[]{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+    public final static AVector NO_CHORD         = Vector.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public final static AVector C_MAJOR          = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector C_MAJOR_7        = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector C_MINOR_7        = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_DOM_7          = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_MINOR_9        = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector C_13             = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0);
+    public final static AVector C_MINOR_7_FLAT_5 = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector C_DOM_7_SHARP_9  = Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_DOM_7_FLAT_9   = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_DIM_7          = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0);
+    public final static AVector C_9              = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_MAJOR_9        = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector C_DOM_7_SHARP_11 = Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_MAJOR_7_SHARP_11= Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector C_6              = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0);
+    public final static AVector C_7_ALT          = Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector NC              = Vector.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public final static AVector C		= Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector CM		= Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector Cm_sharp_5	= Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector Cm_plus_        = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector Cm		= Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector Cm11_sharp_5	= Vector.of(1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0);
+    public final static AVector Cm11		= Vector.of(1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector Cm11b5          = Vector.of(1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0);
+    public final static AVector Cm13            = Vector.of(1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0);
+    public final static AVector Cm6             = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0);
+    public final static AVector Cm69            = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0);
+    public final static AVector Cm7_sharp_5	= Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector Cm7             = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector Cm7b5           = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector Ch7              = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector Cm9_sharp_5	= Vector.of(1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector Cm9             = Vector.of(1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0);
+    public final static AVector Cm9b5           = Vector.of(1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector CmM7            = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector CmM7b6          = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1);
+    public final static AVector CmM9            = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector Cmadd9          = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector Cmb6            = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector Cmb6M7          = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1);
+    public final static AVector Cmb6b9          = Vector.of(1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector CM_sharp_5	= Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector C_plus_         = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector Caug            = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector C_plus_7        = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector CM_sharp_5add9	= Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector CM7_sharp_5	= Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1);
+    public final static AVector CM7_plus_	= Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1);
+    public final static AVector CM9_sharp_5	= Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1);
+    public final static AVector C_plus_add9	= Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector C7              = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7_sharp_5	= Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7_plus_        = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector Caug7           = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7aug           = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7_sharp_5_sharp_9	= Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7alt           = Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7b13           = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7b5_sharp_9	= Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7b5            = Vector.of(1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector C7b5b13         = Vector.of(1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7b5b9          = Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C7b5b9b13	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7b6            = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7b9_sharp_11	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C7b9_sharp_11b13	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7b9            = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7b9b13_sharp_11	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7b9b13         = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7no5           = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0);
+    public final static AVector C7_sharp_11	= Vector.of(1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C7_sharp_11b13	= Vector.of(1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7_sharp_5b9_sharp_11	= Vector.of(1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0);
+    public final static AVector C7_sharp_5b9            = Vector.of(1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7_sharp_9_sharp_11	= Vector.of(1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C7_sharp_9_sharp_11b13	= Vector.of(1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7_sharp_9	= Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7_sharp_9b13	= Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C9              = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C9_sharp_5	= Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C9_plus_        = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C9_sharp_11	= Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C9_sharp_11b13	= Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C9_sharp_5_sharp_11	= Vector.of(1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0);
+    public final static AVector C9b13           = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C9b5            = Vector.of(1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector C9b5b13         = Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C9no5           = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0);
+    public final static AVector C13_sharp_11	= Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0);
+    public final static AVector C13_sharp_9_sharp_11	= Vector.of(1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0);
+    public final static AVector C13_sharp_9	= Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0);
+    public final static AVector C13             = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0);
+    public final static AVector C13b5           = Vector.of(1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0);
+    public final static AVector C13b9_sharp_11	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0);
+    public final static AVector C13b9           = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0);
+    public final static AVector CMsus2          = Vector.of(1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector CMsus4          = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
+    public final static AVector Csus2           = Vector.of(1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector Csus4           = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
+    public final static AVector Csusb9          = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
+    public final static AVector C7b9b13sus4	= Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7b9sus         = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
+    public final static AVector C7b9sus4        = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7sus           = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7sus4          = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7sus4b9        = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7sus4b9b13	= Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7susb9         = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C9sus4          = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C9sus           = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C11             = Vector.of(1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C13sus          = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0);
+    public final static AVector C13sus4         = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0);
+    public final static AVector CBlues          = Vector.of(1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0);
+    public final static AVector CBass           = Vector.of(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     
-    public final static BidirectionalHashMap<String, INDArray> CHORD_TYPES = new BidirectionalHashMap<>();
+    public final static BidirectionalHashMap<String, AVector> CHORD_TYPES = new BidirectionalHashMap<>();
     static {
         CHORD_TYPES.put("NC", NO_CHORD);
         CHORD_TYPES.put("", C_MAJOR);

@@ -5,22 +5,29 @@
  */
 package filters;
 
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.ops.transforms.Transforms;
+import mikera.vectorz.AVector;
 
 /**
- * Enum operations specifies functionality on a number of in-place operations that can be performed on INDArrays
+ * Enum operations specifies functionality on a number of in-place operations that can be performed on AVectors
  * @author cssummer16
  */
 public enum Operations{
         Sigmoid, Tanh, Softmax, None;
-        public INDArray operate(INDArray input)
+        public AVector operate(AVector input)
         {
             switch(this)
             {
-                case Sigmoid: return Transforms.sigmoid(input, false);
-                case Tanh: return Transforms.tanh(input, false);
-                case Softmax: return Transforms.exp(input, false).div(input.sum(1));
+                case Sigmoid:   input.multiply(-1);
+                                input.exp();
+                                input.add(1.0);
+                                input.reciprocal();
+                                return input;
+                case Tanh:      input.tanh();
+                                return input;
+                case Softmax:   AVector temp = input;
+                                input.exp();
+                                input.divide(temp.elementSum());
+                                return input;
                 case None:
                 default:
                         return input;

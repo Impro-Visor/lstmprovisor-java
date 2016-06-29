@@ -5,7 +5,7 @@
  */
 package encoding;
 
-import org.nd4j.linalg.api.ndarray.INDArray;
+import mikera.vectorz.AVector;
 
 /**
  *  Abstract class NoteEncoding allows for strategy implementation of the encoding process, 
@@ -14,13 +14,13 @@ import org.nd4j.linalg.api.ndarray.INDArray;
  */
 public interface NoteEncoder {
     
-    public INDArray encode(int midiValue);
+    public AVector encode(int midiValue);
     
     public int getSustainKey();
     
-    public boolean hasSustain(INDArray input);
+    public boolean hasSustain(AVector input);
     
-    public int decode(INDArray input);
+    public int decode(AVector input);
     
     public default int getNoteLength(){
         int sum = 0;
@@ -31,6 +31,6 @@ public interface NoteEncoder {
     
     public Group[] getGroups();
     
-    public INDArray clean(INDArray input);
+    public AVector clean(AVector input);
     
 }

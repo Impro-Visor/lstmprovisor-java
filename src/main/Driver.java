@@ -28,7 +28,7 @@ import mikera.vectorz.Vector;
  * @author Nicholas Weintraut
  */
 public class Driver {
-    private static final boolean advanceDecoding = true; //should we start decoding as soon as possible?
+    private static final boolean advanceDecoding = false; //should we start decoding as soon as possible?
     
     public static void main(String[] args) {
         //here is just silly code for generating name based on an LSTM lol $wag
@@ -50,17 +50,16 @@ public class Driver {
             }
         };
         
-        String[] notFound1 = (new NetworkMeatPacker()).pack("BrainData/corn_params", titleNetLoader);
+        String[] notFound1 = (new NetworkMeatPacker()).pack("BrainData/jazzname_params", titleNetLoader);
         for(String name : notFound1)
             System.out.println(name);
         
         Random rand = new Random();
-        
-        AVector charOut = Vector.createLength(27);
-        charOut.set(0, 1.0);
-        GroupedSoftMaxSampler sampler = new GroupedSoftMaxSampler(new Group[]{new Group(0, 27, true)});
+        String characterString = " !\"'(),-.01245679:?ABCDEFGHIJKLMNOPQRSTUVWYZabcdefghijklmnopqrstuvwxyz";
+        AVector charOut = Vector.createLength(characterString.length());
+        GroupedSoftMaxSampler sampler = new GroupedSoftMaxSampler(new Group[]{new Group(0, characterString.length(), true)});
         String songTitle = "";
-        for(int i = 0; i < 8; i++)
+        for(int i = 0; i < 50; i++)
         {
             
             charOut = fullLayer.forward(lstm.step(charOut));
@@ -73,11 +72,9 @@ public class Driver {
                 if(charOut.get(charIndex) == 1.0)
                     break;
             }
-            if(charIndex >= 26)
-                songTitle += " ";
-            else
-                songTitle += ((char) ('a' + charIndex));
+            songTitle += characterString.substring(charIndex, charIndex+1);
         }
+        songTitle = songTitle.trim();
         //end stupid stuff, songTitle will be used later during writeCall
         LogTimer.initStartTime();
         LogTimer.log("Generated song name: " + songTitle);
@@ -129,6 +126,7 @@ public class Driver {
                     }
                 }
             }
+            autoencoder.perturbQueue();
             while(autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
                     outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder
                     //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       

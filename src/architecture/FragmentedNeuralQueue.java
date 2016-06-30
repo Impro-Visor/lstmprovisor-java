@@ -5,11 +5,14 @@
  */
 package architecture;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import mikera.vectorz.AVector;
 import mikera.vectorz.Vector;
 import java.util.LinkedList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Class FragmentedNeuralQueue is an implementation of a fragmented neural queue simplified for operation (cannot be used for training) of a CompressingAutoencoder
@@ -79,9 +82,31 @@ public class FragmentedNeuralQueue {
         Collections.shuffle(vectorList);
     }
     
+    public void halfAndHalfQueue()
+    {
+        for(int i = 0; i < strengthList.size()/2; i++)
+        {
+            strengthList.offer(strengthList.poll());
+            vectorList.offer(vectorList.poll());
+        }
+    }
+    
     public void shuffleQueue()
     {
-        
+        Random rand = new Random();
+        List<Double> strengths = (List<Double>) strengthList;
+        List<AVector> vectors = (List<AVector>) vectorList;
+        for(int i = 0; i < strengths.size(); i++)
+        {
+            int sourceIndex = rand.nextInt(strengths.size());
+            int destIndex = rand.nextInt(strengths.size());
+            AVector tempVector = vectors.get(destIndex);
+            Double tempStrength = strengths.get(destIndex);
+            strengths.set(destIndex, strengths.get(sourceIndex));
+            vectors.set(destIndex, vectors.get(sourceIndex));
+            strengths.set(sourceIndex, tempStrength);
+            vectors.set(sourceIndex, tempVector);
+        }
     }
     
     public void shuffleStrengths()

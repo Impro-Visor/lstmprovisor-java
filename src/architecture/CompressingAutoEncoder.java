@@ -83,7 +83,9 @@ public class CompressingAutoEncoder implements Loadable {
             AVector vectorEncoding = fullLayer1.forward(encoding2);
             //System.out.println(vectorEncoding);
             //System.out.println(vectorEncoding.get(0) + " strength <- timeStep " + timeStep++);
-            queue.enqueueStep(vectorEncoding.subVector(1,featureVectorSize), vectorEncoding.get(0));
+            AVector outputVector = vectorEncoding.subVector(1, featureVectorSize);
+
+            queue.enqueueStep(outputVector, vectorEncoding.get(0));
             
         }
         else
@@ -95,7 +97,9 @@ public class CompressingAutoEncoder implements Loadable {
     public boolean canDecode() {
         return queue.hasFullBuffer();
     }
-    
+    public void perturbQueue(){
+        //queue.shuffleQueue();
+    }
     public AVector decodeStep() {
         //current output at very beginning should be a rest
         AVector decoding1 = decoder1.step(inputManager.retrieveDecoderInput(queue.dequeueStep(), currOutput));

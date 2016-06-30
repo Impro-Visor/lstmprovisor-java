@@ -82,7 +82,7 @@ public class CirclesOfThirdsEncoder implements NoteEncoder {
             CirclePair circleIndexes = pitchData[noteIndex];
             output.set(majorGroup.startIndex + circleIndexes.major, 1.0);
             output.set(minorGroup.startIndex + circleIndexes.minor, 1.0);
-            output.set(octaveGroup.startIndex + octaveIndex, 1.0);
+            output.set(octaveGroup.startIndex + ((octaveIndex > 2) ? 2 : octaveIndex), 1.0);
         }
         return output;
     }

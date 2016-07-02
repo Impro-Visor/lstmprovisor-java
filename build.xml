@@ -82,7 +82,7 @@
     </target>
 
     <target name="run">
-        <java jar="build/jar/DeepDragonNN.jar" fork="true" args="${basedir}/Inputs/StellaByStarlight-GeorgeBenson-VictorYoung.ls ${basedir}/Outputs ${basedir}/BrainData/CircleOfThirdsHideOutput ${basedir}/BrainData/corn_params"/>
+        <java jar="build/jar/DeepDragonNN.jar" fork="true" args="/Users/cssummer16/Documents/research/python3/dataset/0150.ls ${basedir}/Outputs /Users/cssummer16/Documents/research/tmp/compae-poex-npn/paramcsv /Users/cssummer16/Documents/research/python3/nametrain/params"/>
         
     </target>
 

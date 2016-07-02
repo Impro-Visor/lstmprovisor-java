@@ -13,6 +13,7 @@ import architecture.FullyConnectedLayer;
 import architecture.LSTM;
 import architecture.LeadsheetAutoencoderInputManager;
 import architecture.Loadable;
+import architecture.poex.ProductCompressingAutoEncoder;
 import encoding.EncodingParameters;
 import encoding.Group;
 import filters.GroupedSoftMaxSampler;
@@ -50,7 +51,7 @@ public class Driver {
             }
         };
         
-        String[] notFound1 = (new NetworkMeatPacker()).pack("BrainData/jazzname_params", titleNetLoader);
+        String[] notFound1 = (new NetworkMeatPacker()).pack(args[3], titleNetLoader);
         for(String name : notFound1)
             System.out.println(name);
         
@@ -93,7 +94,7 @@ public class Driver {
             int inputSize = 34;
             int outputSize = EncodingParameters.noteEncoder.getNoteLength();
             int featureVectorSize = 100;
-            CompressingAutoEncoder autoencoder = new CompressingAutoEncoder(new LeadsheetAutoencoderInputManager(EncodingParameters.noteEncoder.getNoteLength()), inputSize, outputSize, featureVectorSize); //create our network
+            ProductCompressingAutoEncoder autoencoder = new ProductCompressingAutoEncoder(inputSequence, 9, inputSize, outputSize, featureVectorSize, 48, 84+1); //create our network
             
             //"pack" the network from weights and biases file directory
             LogTimer.log("Packing autoencoder from files");
@@ -116,9 +117,8 @@ public class Driver {
             LogTimer.startLog("Encoding data...");
             //TradingTimer.initStart(); //start our trading timer to keep track our our generation versus realtime play
             while(inputSequence.hasNext()) { //iterate through time steps in input data
-                AVector inputVector = inputSequence.retrieve();
                 //TradingTimer.waitForNextTimedInput();
-                autoencoder.encodeStep(inputVector); //feed the resultant input vector into the network
+                autoencoder.encodeStep(); //feed the resultant input vector into the network
                 if(advanceDecoding) { //if we are using advance decoding (we start decoding as soon as we can)
                     if(autoencoder.canDecode()) { //if queue has enough data to decode from
                         outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder

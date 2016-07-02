@@ -5,6 +5,9 @@
  */
 package encoding;
 
+import architecture.poex.PassthroughChordEncoder;
+import architecture.poex.PassthroughNoteEncoder;
+
 /**
  *
  * @author cssummer16
@@ -12,6 +15,6 @@ package encoding;
 public class EncodingParameters {
     
     //must update
-    public static final NoteEncoder noteEncoder = new CirclesOfThirdsEncoder();
-    public static final ChordEncoder chordEncoder = new ChordEncoder();
+    public static final NoteEncoder noteEncoder = new PassthroughNoteEncoder();
+    public static final ChordEncoder chordEncoder = new PassthroughChordEncoder();
 }

@@ -208,7 +208,17 @@ public class LeadSheetIO {
             outputWriter.write("(title " + songTitle + ")");
             outputWriter.newLine();
             //set style to ska because it is style bae $wag
-            outputWriter.write("(section (style ska))");
+            outputWriter.write("(tempo " + data.getTempo() + ")");
+            outputWriter.newLine();
+            outputWriter.write("(section (style " + data.getStyle() + "))");
+            outputWriter.newLine();
+            outputWriter.write("(part ");
+            outputWriter.newLine();
+            outputWriter.write("(type melody)");
+            outputWriter.newLine();
+            outputWriter.write("(instrument 57)");
+            outputWriter.newLine();
+            outputWriter.write(")");
             outputWriter.newLine();
             if(data.hasMelodyLeft()) {
                 NoteEncoder noteEncoder = EncodingParameters.noteEncoder;

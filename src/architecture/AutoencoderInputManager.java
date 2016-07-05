@@ -24,6 +24,7 @@ public abstract class AutoencoderInputManager {
         encoderQueue = new LinkedList<AVector>();
         decoderQueue = new LinkedList<AVector>();
     }
+    
     public void takeInput(AVector input)
     {
         encoderQueue.offer(input);

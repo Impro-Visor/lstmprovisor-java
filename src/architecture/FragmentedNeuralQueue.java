@@ -109,6 +109,136 @@ public class FragmentedNeuralQueue {
         }
     }
     
+    
+    
+    /**
+     * Based on vector strengths, returns lists of contiguous vectors that represent musical "features" as recognized by the encoder.
+     * @return List of lists of indexes that point to paired vectors and strengths in the queue
+     */
+    public List<List<Integer>> findFeatureGroups()
+    {
+        double threshold = 0.6;
+        List<List<Integer>> featureGroups = new ArrayList<>();
+        featureGroups.add(new ArrayList<>());
+        Iterator<Double> strengthIterator = strengthList.iterator();
+        boolean filledGroup = false;
+        int strengthIndex = 0;
+        while(strengthIterator.hasNext()) {
+            Double strength = strengthIterator.next();
+            if(filledGroup && strength < threshold)
+            {
+                featureGroups.add(new ArrayList<>());
+                filledGroup = false; 
+            }
+            featureGroups.get(featureGroups.size() - 1).add(strengthIndex);
+            if(strength >= threshold) {
+                filledGroup = true;
+            }
+            strengthIndex++;
+        }
+        System.out.println(featureGroups.size() + " feature groups found");
+        System.out.println((strengthList.size() / featureGroups.size()) + " timeSteps per feature group(rounded down)");
+        return featureGroups;
+    }
+    
+    public void printFeatureGroups()
+    {
+        for(List<Integer> group : findFeatureGroups()) {
+            double maxStrength = 0;
+            int maxIndex = 0;
+            for(int i = 0; i < group.size(); i++) {
+                if(strengthList.get(group.get(i)) > maxStrength) {
+                    maxStrength = strengthList.get(group.get(i));
+                    maxIndex = group.get(i);
+                }
+            }
+            System.out.println(vectorList.get(maxIndex) + " with strength " + maxStrength + " at timeStep " + maxIndex);
+        }
+    }
+    
+    public void testFill()
+    {
+        int size = strengthList.size();
+        int vectorSize = vectorList.get(0).length();
+        strengthList.clear();
+        vectorList.clear();
+        int bitIndex = 0;
+        for(int i = 0; i < size - 1; i++)
+        {
+            if(i % 48 == 0)
+            {
+                AVector v = Vector.createLength(vectorSize);
+                v.set(bitIndex++ % v.length(), 1.0);
+                vectorList.add(v);
+                strengthList.add(1.0);
+            }
+            else
+            {
+                vectorList.add(Vector.createLength(vectorSize));
+                strengthList.add(0.0);
+            }
+        }
+        AVector v = Vector.createLength(vectorSize);
+        v.set(bitIndex % v.length(), 1.0);
+        vectorList.add(v);
+        strengthList.add(1.0);
+    }
+    
+    
+    public void shuffleFeatures(boolean shouldPermutate, boolean favorRecognition)
+    {
+        List<List<Integer>> featureGroups = findFeatureGroups();
+        List<List<Integer>> shuffledGroups = new ArrayList<>();
+        LinkedList<Double> newStrengths = new LinkedList<>();
+        LinkedList<AVector> newVectors = new LinkedList<>();
+        Random rand = new Random();
+        if(shouldPermutate) {
+            shuffledGroups.addAll(featureGroups);
+            Collections.shuffle(shuffledGroups);
+        }
+        /*
+        else if(favorRecognition) {
+            List<Double> groupMaxStrengths = new ArrayList<>();
+            double totalMaxStrength = 0.0;
+            for(List<Integer> group :  featureGroups) {
+                double maxStrength = 0.0;
+                for(Integer i : group) {
+                    if(strengthList.get(i) > maxStrength)
+                        maxStrength = strengthList.get(i);
+                }
+                totalMaxStrength += maxStrength;
+                groupMaxStrengths.add(maxStrength);
+            }
+            int size = 0;
+            boolean hasEnough = false;
+            //unfinished
+            double randIndex = rand.nextDouble() * totalMaxStrength;
+            Iterator<Double> groupStrengthIterator = groupMaxStrengths.iterator();
+            while(!hasEnough)
+            {
+                boolean foundLargestFit = false;
+                while(!foundLargestFit)
+                {
+                    //
+                }
+            }
+        }*/
+        else {
+            for(int i = 0; i < featureGroups.size(); i++) {
+                shuffledGroups.add(featureGroups.get(rand.nextInt(featureGroups.size())));
+            }
+        }
+        
+        for(List<Integer> group : shuffledGroups) {
+            for(Integer index : group) {
+                newStrengths.add(strengthList.get(index));
+                newVectors.add(vectorList.get(index).copy());
+            }
+        }
+        strengthList = newStrengths;
+        vectorList = newVectors;
+    }
+    
     public void shuffleStrengths()
     {
         Collections.shuffle(strengthList);

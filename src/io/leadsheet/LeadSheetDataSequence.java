@@ -21,6 +21,9 @@ public class LeadSheetDataSequence implements DataSequence{
     private Queue<AVector> chords;
     private Queue<AVector> melody;
     
+    private String style;
+    private String tempo;
+    
     private int entrySize;
     
     public LeadSheetDataSequence()
@@ -29,6 +32,18 @@ public class LeadSheetDataSequence implements DataSequence{
         chords = new LinkedList<>();
         melody = new LinkedList<>();
         entrySize = 0;
+        style = "swing";
+        tempo = "160";
+    }
+    
+    public String getStyle()
+    {
+        return style;
+    }
+    
+    public String getTempo()
+    {
+        return tempo;
     }
     
     /**

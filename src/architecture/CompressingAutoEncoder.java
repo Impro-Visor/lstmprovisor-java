@@ -63,7 +63,6 @@ public class CompressingAutoEncoder implements Loadable {
     }
     private int timeStep = 0;
     public void encodeStep(AVector input) {
-        
         if(input.length() == inputSize)
         {
             //for(int i = 0; i < input.length(); i++)
@@ -98,8 +97,17 @@ public class CompressingAutoEncoder implements Loadable {
         return queue.hasFullBuffer();
     }
     public void perturbQueue(){
-        //queue.shuffleQueue();
+        queue.shuffleFeatures(true, false);
     }
+    
+    public void testQueue(){
+        queue.testFill();
+    }
+    
+    public void printFeatureGroups(){
+        queue.printFeatureGroups();
+    }
+    
     public AVector decodeStep() {
         //current output at very beginning should be a rest
         AVector decoding1 = decoder1.step(inputManager.retrieveDecoderInput(queue.dequeueStep(), currOutput));

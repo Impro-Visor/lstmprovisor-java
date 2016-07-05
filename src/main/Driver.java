@@ -126,7 +126,9 @@ public class Driver {
                     }
                 }
             }
-            autoencoder.perturbQueue();
+            //autoencoder.perturbQueue();
+            //autoencoder.testQueue();
+            autoencoder.printFeatureGroups();
             while(autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
                     outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder
                     //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       

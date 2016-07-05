@@ -82,7 +82,7 @@
     </target>
 
     <target name="run">
-        <java jar="build/jar/DeepDragonNN.jar" fork="true" args="${basedir}/Inputs/StellaByStarlight-GeorgeBenson-VictorYoung.ls ${basedir}/Outputs ${basedir}/BrainData/CircleOfThirdsHideOutput ${basedir}/BrainData/corn_params"/>
+        <java jar="build/jar/DeepDragonNN.jar" fork="true" args="${basedir}/Inputs/0150.ls ${basedir}/Outputs ${basedir}/BrainData/CircleOfThirdsHideOutput ${basedir}/BrainData/corn_params"/>
         
     </target>
 

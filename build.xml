@@ -76,7 +76,7 @@
             <zipgroupfileset dir="${basedir}/lib" includes="*.jar" />
             <!--zipgroupfileset dir="${basedir}/../rbm-provisor-code-1/dist" includes="*.jar" />-->
             <manifest>
-                <attribute name="Main-Class" value="main.Driver"/>
+                <attribute name="Main-Class" value="architecture.poex.GenerativeProductDriver"/>
             </manifest>
         </jar>
     </target>

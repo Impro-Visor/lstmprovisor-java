@@ -72,7 +72,7 @@
 
     <target name="jar" depends="compile">
         <mkdir dir="build/jar"/>
-        <jar destfile="build/jar/DeepDragonNN.jar" basedir="build/classes">
+        <jar destfile="build/jar/LSTMprovisor.jar" basedir="build/classes">
             <zipgroupfileset dir="${basedir}/lib" includes="*.jar" />
             <!--zipgroupfileset dir="${basedir}/../rbm-provisor-code-1/dist" includes="*.jar" />-->
             <manifest>
@@ -82,7 +82,7 @@
     </target>
 
     <target name="run">
-        <java jar="build/jar/DeepDragonNN.jar" fork="true" args="${basedir}/Inputs/0150.ls ${basedir}/Outputs ${basedir}/BrainData/CircleOfThirdsHideOutput ${basedir}/BrainData/corn_params"/>
+        <java jar="build/jar/LSTMprovisor.jar" fork="true" args="${basedir}/Inputs/0150.ls ${basedir}/Outputs ${basedir}/BrainData/CircleOfThirdsHideOutput ${basedir}/BrainData/corn_params"/>
         
     </target>
 

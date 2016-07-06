@@ -9,7 +9,7 @@ auxiliary.show.customizer=false
 property there. Adding 
 auxiliary.show.customizer.message=<message>
  will show your customized message when someone attempts to open the customizer.  -->
-            <name>DeepDragonNN</name>
+            <name>LSTMprovisor</name>
             <properties/>
             <folders>
                 <source-folder>

@@ -17,7 +17,7 @@ public class ChordEncoder {
     
     public ChordEncoder(){}
     
-    public AVector encode(String root, String type)
+    public AVector encode(String root, String type, String bass)
     {
         AVector chordData = CHORD_TYPES.getValue(type);
         //System.out.println();
@@ -29,13 +29,9 @@ public class ChordEncoder {
             return null;
         else
         {
-        AVector transposedData = transposeChordData(CHORD_TYPES.getValue(type), (int) DISTANCES_FROM_C.getValue(root).intValue());
-        //System.out.println(decode(transposedData));
-        //System.out.println();
-        //for(int i = 0; i < transposedData.length(); i++)
-        //    System.out.print(transposedData.getDouble(i) + " ");
-        //System.out.println();
-        return transposedData;
+            AVector transposedData = transposeChordData(chordData.clone(), (int) DISTANCES_FROM_C.getValue(root).intValue());
+            transposedData.set((int) DISTANCES_FROM_C.getValue(bass).intValue(), 1);
+            return transposedData;
         }
     }
     
@@ -64,7 +60,8 @@ public class ChordEncoder {
         }
         if(transposition == 12)
         {
-            throw new RuntimeException("Chord not found!");
+            System.out.println("Chord not found! (Might be a slash chord, which are not implemented for decode.) Substituting NC");
+            return "NC";
         }
         if(("NC").equals(type))
             return "NC";
@@ -221,6 +218,9 @@ public class ChordEncoder {
     public final static AVector C13sus4         = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0);
     public final static AVector CBlues          = Vector.of(1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0);
     public final static AVector CBass           = Vector.of(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public final static AVector Co              = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0);
+    public final static AVector CM6             = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0);
+    public final static AVector CM69            = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0);
     
     public final static BidirectionalHashMap<String, AVector> CHORD_TYPES = new BidirectionalHashMap<>();
     static {
@@ -232,9 +232,12 @@ public class ChordEncoder {
         CHORD_TYPES.put("7", C_DOM_7);
         CHORD_TYPES.put("m9", C_MINOR_9);
         CHORD_TYPES.put("13", C_13);
+        CHORD_TYPES.put("M6", CM6);
+        CHORD_TYPES.put("M69", CM69);
         CHORD_TYPES.put("m7b5", C_MINOR_7_FLAT_5);
         CHORD_TYPES.put("7#9", C_DOM_7_SHARP_9);
         CHORD_TYPES.put("7b9", C_DOM_7_FLAT_9);
+        CHORD_TYPES.put("o", Co);
         CHORD_TYPES.put("o7", C_DIM_7);
         CHORD_TYPES.put("9", C_9);
         CHORD_TYPES.put("M9", C_MAJOR_9);

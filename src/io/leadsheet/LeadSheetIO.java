@@ -16,6 +16,8 @@ import encoding.ChordEncoder;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import mikera.vectorz.Vector;
 import mikera.vectorz.AVector;
@@ -63,7 +65,7 @@ public class LeadSheetIO {
         {
             //System.out.println(chord.getRoot() + chord.getType());
             //System.out.println(chord.getDuration());
-            AVector chordData = chordEncoder.encode(chord.getRoot(), chord.getType());
+            AVector chordData = chordEncoder.encode(chord.getRoot(), chord.getType(), chord.getBass());
             if(chordData == null)
             {
                 System.out.println(chord.getType());
@@ -147,6 +149,7 @@ public class LeadSheetIO {
         ArrayList<Chord> chords = new ArrayList<Chord>();
         ArrayList<Chord> partialChordList = new ArrayList<Chord>();
         Chord lastChord = null;
+        Pattern p = Pattern.compile("([A-G](?:#|b)?)([^/]*)(?:/(.+))?");
         try {
             Tokenizer tokenizer = new Tokenizer(new FileInputStream(filename));
             Object temp = tokenizer.nextSexp();
@@ -155,25 +158,21 @@ public class LeadSheetIO {
                     String strToken = (String)temp;
                     char firstChar = strToken.charAt(0);
                     if (Character.isUpperCase(firstChar)) { //Check for chord symbols   
-                        char secondChar = '_';  // a dummy value
-                        String root = "";
-                        String type = "";
-                        if(strToken.length() > 1){
-                            secondChar = strToken.charAt(1);
-                        }
-                        if (firstChar == 'N' && secondChar == 'C') {
-                            root = "NC";
-                            type = "NC";
-                        }else if (secondChar == '#' || secondChar == 'b') {
-                            root = strToken.substring(0, 2);
-                            type = strToken.substring(2);
-                        } else  {
-                            root = strToken.substring(0, 1);
-                            if(strToken.length() > 1) {
-                                type = strToken.substring(1);
+                        Chord chord;
+                        if(strToken.equals("NC")) {
+                            chord = new Chord(0,"NC","NC");
+                        } else {
+                            Matcher m = p.matcher(strToken);
+                            if(m.matches()){
+                                String root = m.group(1);
+                                String type = m.group(2);
+                                String slash_bass = m.group(3);
+                                chord = new Chord(0,root,type,slash_bass);
+                                System.out.println(strToken + " -> " + root + " " + type + " " + slash_bass);
+                            } else {
+                                throw new RuntimeException("Malformed chord symbol " + strToken);
                             }
                         }
-                        Chord chord = new Chord(0, root, type);
                         lastChord = chord;
                         partialChordList.add(chord);
                     }else if(strToken.equals("/")) {

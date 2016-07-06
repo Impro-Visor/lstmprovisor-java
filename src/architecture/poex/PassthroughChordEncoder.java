@@ -18,36 +18,49 @@ import mikera.vectorz.Vector;
  */
 public class PassthroughChordEncoder extends ChordEncoder {
     @Override
-    public AVector encode(String root, String type)
+    public AVector encode(String root, String type, String bass)
     {
         AVector chordData = CHORD_TYPES.getValue(type);
+            
         if(chordData == null)
             return null;
         else {
-            AVector allData = Vector.of(DISTANCES_FROM_C.getValue(root).intValue());
-            return allData.join(chordData);
+            AVector transposedData = transposeChordData(chordData, (int) DISTANCES_FROM_C.getValue(root).intValue() - (int) DISTANCES_FROM_C.getValue(bass).intValue());
+            transposedData.set(0, 1);
+            AVector allData = Vector.of(DISTANCES_FROM_C.getValue(bass).intValue());
+            return allData.join(transposedData);
         }
     }
     
     @Override
     public String decode(AVector chordData) {
-        double root = chordData.get(0);
+        double bass = chordData.get(0);
         AVector typeData = chordData.subVector(1, chordData.length()-1);
-        String type = null;
-        double transposition = 0;
+        if(typeData.isZero())
+            return "NC";
         for(Map.Entry<String, AVector> entry : CHORD_TYPES.entrySet()) {
             if(typeData.equals(entry.getValue())){
-                type = entry.getKey();
-                break;
+                String type = entry.getKey();
+                return DISTANCES_FROM_C.getKey(bass) + type;
             }
         }
-        if(type == null)
-        {
-            throw new RuntimeException("Chord not found!");
+        // Check slash chords
+        int transposition = 0;
+        AVector without_bass = Vector.of(0).join(typeData.subVector(1,typeData.length()-1));
+        while (transposition < 12) {
+            String type;
+            for (Map.Entry<String, AVector> entry : CHORD_TYPES.entrySet()) {
+                if (typeData.equals(entry.getValue()) || without_bass.equals(entry.getValue())) {
+                    type = entry.getKey();
+                    double root_note = (bass + transposition)%12;
+                    return DISTANCES_FROM_C.getKey(root_note) + type + "/" + DISTANCES_FROM_C.getKey(bass);
+                }
+            }
+            typeData = transposeChordData(typeData, -1);
+            without_bass = transposeChordData(without_bass, -1);
+            transposition++;
         }
-        if(("NC").equals(type))
-            return "NC";
-        else
-            return DISTANCES_FROM_C.getKey(root) + type;
+        System.out.println("Chord not found! Substituting NC");
+        return "NC";
     }
 }

@@ -17,17 +17,25 @@ public class LeadsheetAutoencoderInputManager extends AutoencoderInputManager{
     private int noteSize;
     private int inputSize;
     private int featureVectorSize;
+    private boolean hideOutput;
     
     public LeadsheetAutoencoderInputManager(int inputSize, int noteSize, int featureVectorSize)
     {
         this.inputSize = inputSize;
         this.noteSize = noteSize;
         this.featureVectorSize = featureVectorSize;
+        hideOutput = true;
     }
     
-    public LeadsheetAutoencoderInputManager(int noteSize)
+    public LeadsheetAutoencoderInputManager(int noteSize, boolean hideOutput)
     {
         this.noteSize = noteSize;
+        this.hideOutput = hideOutput;
+    }
+    
+    public void setHideOutput(boolean hideOutput)
+    {
+        this.hideOutput = hideOutput;
     }
     
     public void setInputSizes(int inputSize, int featureVectorSize)
@@ -44,7 +52,10 @@ public class LeadsheetAutoencoderInputManager extends AutoencoderInputManager{
     @Override
     public AVector retrieveDecoderInput(AVector neuralQueueOutput, AVector decoderOutput) {
         //currently we don't do anything with the decoder size
-        return decoderQueue.peek().subVector(0, decoderQueue.poll().length() - noteSize).join(neuralQueueOutput);
+        AVector decInput = decoderQueue.peek().subVector(0, decoderQueue.poll().length() - noteSize).join(neuralQueueOutput);
+        if(!hideOutput)
+            decInput = decInput.join(decoderOutput);
+        return decInput;
     }
 
     @Override

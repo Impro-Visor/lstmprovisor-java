@@ -110,6 +110,8 @@ public class CompressingAutoEncoder implements Loadable {
     
     public AVector decodeStep() {
         //current output at very beginning should be a rest
+        if(currOutput == null)
+            currOutput = EncodingParameters.noteEncoder.encode(-1);
         AVector decoding1 = decoder1.step(inputManager.retrieveDecoderInput(queue.dequeueStep(), currOutput));
         AVector decoding2 = decoder2.step(decoding1);
         AVector decoding3 = fullLayer2.forward(decoding2);

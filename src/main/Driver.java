@@ -55,7 +55,7 @@ public class Driver {
             System.out.println(name);
         
         Random rand = new Random();
-        String characterString = " !\"'(),-.01245679:?ABCDEFGHIJKLMNOPQRSTUVWYZabcdefghijklmnopqrstuvwxyz";
+        String characterString = " !\"'[],-.01245679:?ABCDEFGHIJKLMNOPQRSTUVWYZabcdefghijklmnopqrstuvwxyz";
         AVector charOut = Vector.createLength(characterString.length());
         GroupedSoftMaxSampler sampler = new GroupedSoftMaxSampler(new Group[]{new Group(0, characterString.length(), true)});
         String songTitle = "";
@@ -92,8 +92,8 @@ public class Driver {
             LogTimer.log("Instantiating autoencoder...");
             int inputSize = 34;
             int outputSize = EncodingParameters.noteEncoder.getNoteLength();
-            int featureVectorSize = 100;
-            CompressingAutoEncoder autoencoder = new CompressingAutoEncoder(new LeadsheetAutoencoderInputManager(EncodingParameters.noteEncoder.getNoteLength()), inputSize, outputSize, featureVectorSize); //create our network
+            int featureVectorSize = 20;
+            CompressingAutoEncoder autoencoder = new CompressingAutoEncoder(new LeadsheetAutoencoderInputManager(EncodingParameters.noteEncoder.getNoteLength(), false), inputSize, outputSize, featureVectorSize); //create our network
             
             //"pack" the network from weights and biases file directory
             LogTimer.log("Packing autoencoder from files");

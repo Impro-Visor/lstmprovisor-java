@@ -94,7 +94,7 @@ public class Driver {
             int inputSize = 34;
             int outputSize = EncodingParameters.noteEncoder.getNoteLength();
             int featureVectorSize = 100;
-            ProductCompressingAutoEncoder autoencoder = new ProductCompressingAutoEncoder(inputSequence, 9, inputSize, outputSize, featureVectorSize, 48, 84+1); //create our network
+            ProductCompressingAutoEncoder autoencoder = new ProductCompressingAutoEncoder(inputSequence, 0, 9, inputSize, outputSize, featureVectorSize, 48, 84+1); //create our network
             
             //"pack" the network from weights and biases file directory
             LogTimer.log("Packing autoencoder from files");
@@ -126,9 +126,6 @@ public class Driver {
                     }
                 }
             }
-            //autoencoder.perturbQueue();
-            //autoencoder.testQueue();
-            autoencoder.printFeatureGroups();
             while(autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
                     outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder
                     //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       

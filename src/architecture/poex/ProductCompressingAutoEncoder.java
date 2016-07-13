@@ -25,6 +25,8 @@ public class ProductCompressingAutoEncoder implements Loadable {
     private int outputSize;
     private int low_bound;
     private int high_bound;
+    private int fixedFeatureLength;
+    private int currTimeStep;
     private Expert[] encoder_experts;
     private Expert[] decoder_experts;
     private RelativeInputPart[][] encoder_inputs;
@@ -45,7 +47,8 @@ public class ProductCompressingAutoEncoder implements Loadable {
     
     private Random rand;
     
-    public ProductCompressingAutoEncoder(LeadSheetDataSequence inputSequence, int inputSize, int outputSize, int beatVectorSize, int featureVectorSize, int lowbound, int highbound){
+    public ProductCompressingAutoEncoder(LeadSheetDataSequence inputSequence, int fixedFeatureLength, int inputSize, int outputSize, int beatVectorSize, int featureVectorSize, int lowbound, int highbound){
+        this.fixedFeatureLength = fixedFeatureLength;
         this.inputSize = inputSize;
         this.outputSize = outputSize;
         this.featureVectorSize = featureVectorSize;
@@ -53,7 +56,7 @@ public class ProductCompressingAutoEncoder implements Loadable {
         this.high_bound = highbound;
         this.rand = new Random();
         this.num_experts = 2;
-        
+        this.currTimeStep = 0;
         this.queue = new FragmentedNeuralQueue();
         
         this.inputSequence = inputSequence;
@@ -141,10 +144,15 @@ public class ProductCompressingAutoEncoder implements Loadable {
             else
                 accum_activations.add(activations);
         }
-        
-        Operations.Sigmoid.operate(accum_activations);
-        AVector outputVector = accum_activations.subVector(1, featureVectorSize);
-        this.queue.enqueueStep(outputVector, accum_activations.get(0));
+        if(currTimeStep+1 == fixedFeatureLength)
+        {
+            Operations.Sigmoid.operate(accum_activations);
+            AVector outputVector = accum_activations.subVector(1, featureVectorSize);
+            this.queue.enqueueStep(outputVector, accum_activations.get(0));
+            currTimeStep = 0;
+        }
+        else
+            currTimeStep++;
     }
     
     

@@ -255,6 +255,7 @@ public class ChordEncoder {
         CHORD_TYPES.put("m13", Cm13);
         CHORD_TYPES.put("m6", Cm6);
         CHORD_TYPES.put("m69", Cm69);
+        CHORD_TYPES.put("69", Cm69); //hey not sure if this is correct
         CHORD_TYPES.put("m7#5", Cm7_sharp_5);
         CHORD_TYPES.put("m7", Cm7);
         CHORD_TYPES.put("m7b5", Cm7b5);

@@ -143,15 +143,23 @@ public class ProductCompressingAutoEncoder implements Loadable {
             else
                 accum_activations.add(activations);
         }
-        if(currTimeStep+1 == fixedFeatureLength)
+        if(fixedFeatureLength > 0)
         {
-            Operations.Sigmoid.operate(accum_activations);
-            AVector outputVector = accum_activations.subVector(1, featureVectorSize);
-            this.queue.enqueueStep(outputVector, accum_activations.get(0));
-            currTimeStep = 0;
+            if((currTimeStep+1) % fixedFeatureLength == 0)
+            {
+                Operations.Sigmoid.operate(accum_activations);
+                AVector outputVector = accum_activations.subVector(0, featureVectorSize);
+                this.queue.enqueueStep(outputVector, 1.0);
+            }
+            else
+            {
+                this.queue.enqueueStep(Vector.createLength(featureVectorSize), 0.0);
+            }
+
+            currTimeStep++;
         }
         else
-            currTimeStep++;
+            throw new RuntimeException("Set feature size is not greater than zero.");
     }
     
     

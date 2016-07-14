@@ -94,7 +94,7 @@ public class Driver {
             int inputSize = 34;
             int outputSize = EncodingParameters.noteEncoder.getNoteLength();
             int featureVectorSize = 100;
-            ProductCompressingAutoEncoder autoencoder = new ProductCompressingAutoEncoder(inputSequence, 0, 9, inputSize, outputSize, featureVectorSize, 48, 84+1); //create our network
+            ProductCompressingAutoEncoder autoencoder = new ProductCompressingAutoEncoder(inputSequence, 24, 9, inputSize, outputSize, featureVectorSize, 48, 84+1); //create our network
             
             //"pack" the network from weights and biases file directory
             LogTimer.log("Packing autoencoder from files");
@@ -108,16 +108,16 @@ public class Driver {
                 }
             }
             LeadSheetDataSequence outputSequence = inputSequence.copy();
-            int j = 0;
-            
             outputSequence.clearMelody();
             
             
             
             LogTimer.startLog("Encoding data...");
+            int i = 0;
             //TradingTimer.initStart(); //start our trading timer to keep track our our generation versus realtime play
             while(inputSequence.hasNext()) { //iterate through time steps in input data
                 //TradingTimer.waitForNextTimedInput();
+                
                 autoencoder.encodeStep(); //feed the resultant input vector into the network
                 if(advanceDecoding) { //if we are using advance decoding (we start decoding as soon as we can)
                     if(autoencoder.canDecode()) { //if queue has enough data to decode from
@@ -128,6 +128,8 @@ public class Driver {
             }
             while(autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
                     outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder
+                    if(i++ > 0)
+                    throw new RuntimeException();
                     //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
             }
             LogTimer.log("Writing file...");

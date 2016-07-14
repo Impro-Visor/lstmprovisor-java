@@ -126,17 +126,19 @@ public class ProductCompressingAutoEncoder implements Loadable {
         int chord_root = (int) raw_chord.get(0);
         AVector chord_type = raw_chord.subVector(1, 12);
         int midinote = (int) raw_melody.get(0);
-        System.out.println("Beat is " + beat);
+        //System.out.println("Beat is " + beat);
         this.beat_part.provide(beat,this.num_experts);
         
         AVector accum_activations = null;
         for(int i=0; i<this.num_experts; i++) {
             RelativeNoteEncoding enc = this.encoder_expert_encodings[i];
-            AVector encval = enc.encode(midinote, chord_root);
             int relpos = enc.get_relative_position(chord_root);
+            AVector encval = enc.encode(midinote, chord_root);
+            
             this.cur_output_parts[i].provide(encval);
             
             AVector full_encoder_input = RelativeInputPart.combine(this.encoder_inputs[i], relpos, chord_root, chord_type);
+            //System.out.println("expert index " + i + ": " + full_encoder_input);
             AVector activations = this.encoder_experts[i].process(full_encoder_input);
             
             if(accum_activations == null)
@@ -144,15 +146,21 @@ public class ProductCompressingAutoEncoder implements Loadable {
             else
                 accum_activations.add(activations);
         }
-        if(currTimeStep+1 == fixedFeatureLength)
+        Operations.Sigmoid.operate(accum_activations);
+        AVector outputVector = accum_activations.subVector(0, featureVectorSize);
+        
+        if((currTimeStep + 1) % fixedFeatureLength == 0)
         {
-            Operations.Sigmoid.operate(accum_activations);
-            AVector outputVector = accum_activations.subVector(1, featureVectorSize);
-            this.queue.enqueueStep(outputVector, accum_activations.get(0));
-            currTimeStep = 0;
+            this.queue.enqueueStep(outputVector, 1.0);
+            //System.out.println("Feature at time step " + currTimeStep + ": " + outputVector);
         }
         else
-            currTimeStep++;
+        {
+            this.queue.enqueueStep(outputVector, 0.0);
+            
+        }
+        //System.out.println(currTimeStep);
+        currTimeStep++;
     }
     
     
@@ -171,14 +179,17 @@ public class ProductCompressingAutoEncoder implements Loadable {
         AVector chord_type = raw_chord.subVector(1, 12);
         this.beat_part.provide(beat,this.num_experts);
         this.feature_part.provide(this.queue.dequeueStep(), this.num_experts);
-        
         AVector accum_probabilities = null;
+        this.decoder_experts[0].setPrintInternals(true);
         for(int i=0; i<this.num_experts; i++) {
+            System.out.println(i);
             RelativeNoteEncoding enc = this.decoder_expert_encodings[i];
             int relpos = enc.get_relative_position(chord_root);
             
             AVector full_decoder_input = RelativeInputPart.combine(this.decoder_inputs[i], relpos, chord_root, chord_type);
+            System.out.println("Decoder expert " + i + " input: " + full_decoder_input);
             AVector activations = this.decoder_experts[i].process(full_decoder_input);
+            System.out.println("Decoder expert " + i + " output: " + activations);
             AVector probabilities = enc.getProbabilities(activations, chord_root, this.low_bound, this.high_bound);
             
             if(accum_probabilities == null)
@@ -188,6 +199,7 @@ public class ProductCompressingAutoEncoder implements Loadable {
         }
         
         accum_probabilities.normalise();
+        
         int sampled = NNUtilities.sample(this.rand, accum_probabilities);
         int midival;
         if(sampled == 0)
@@ -209,6 +221,8 @@ public class ProductCompressingAutoEncoder implements Loadable {
     public boolean load(INDArray data, String loadPath) {
         // Expected format: (enc|dec)_#_<expert params>
         // i.e. enc_1_full_w
+        //hello :)
+        System.out.println(loadPath);
         String car = pathCar(loadPath);
         String cdr = pathCdr(loadPath);
         String car2 = pathCar(cdr);
@@ -224,7 +238,9 @@ public class ProductCompressingAutoEncoder implements Loadable {
             default:
                 return false;
         }
+        
         int expert_idx = Integer.parseInt(car2);
+        System.out.println(expert_idx);
         return exps[expert_idx].load(data, cdr2);
     }
 }

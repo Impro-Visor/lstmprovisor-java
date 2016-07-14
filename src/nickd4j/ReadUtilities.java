@@ -29,6 +29,8 @@ public class ReadUtilities {
             while(reading)
             {
                 String line = reader.readLine();
+                if(filePath.contains("dec_0_lstm1_initialstate"))
+                    System.out.println(line);
                 if(line != null)
                     contents.add(line.split(","));
                 else
@@ -45,9 +47,13 @@ public class ReadUtilities {
             }
             if(shape[1] == 1) {
                 AVector readVector = readArray.asVector();
+                if(filePath.contains("dec_0_lstm1_initialstate"))
+                    System.out.println(readVector);
                 return readVector;
             }
             else {
+                if(filePath.contains("dec_0_lstm1_initialstate"))
+                    System.out.println(readArray);
                 return readArray;
             }
             

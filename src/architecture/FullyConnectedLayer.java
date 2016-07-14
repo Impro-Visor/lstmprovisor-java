@@ -36,7 +36,7 @@ public class FullyConnectedLayer implements Loadable {
             multResult.add(biases);
             return type.operate(multResult);
     }
-
+    
     @Override
     public boolean load(INDArray data, String loadPath) {
         switch(loadPath)

@@ -20,19 +20,37 @@ public class Expert implements Loadable {
     private LSTM lstm1;
     private LSTM lstm2;
     private FullyConnectedLayer fullLayer;
+    private boolean shouldPrintInternals;
 
     public Expert(Operations outputOperation) {
         this.lstm1 = new LSTM();
         this.lstm2 = new LSTM();
         this.fullLayer = new FullyConnectedLayer(outputOperation);
+        shouldPrintInternals = false;
+    }
+    public void setPrintInternals(boolean shouldPrintInternals)
+    {
+        this.shouldPrintInternals = shouldPrintInternals;
     }
     
     public AVector process(AVector input) {
-        System.out.println("Processing input " + input);
-        AVector val1 = lstm1.step(input);
-        AVector val2 = lstm2.step(val1);
+        //System.out.println("Processing input " + input);
+        if(shouldPrintInternals)
+            System.out.println(lstm1);
+        AVector val1 = lstm1.step(input, shouldPrintInternals);
+        
+        if(shouldPrintInternals) {
+            System.out.println(val1);
+            System.out.println(lstm2);
+        }
+        AVector val2 = lstm2.step(val1, shouldPrintInternals);
+        if(shouldPrintInternals)
+            System.out.println(val2);
         AVector val3 = fullLayer.forward(val2);
-        System.out.println("Output " + val3);
+        if(shouldPrintInternals)
+            System.out.println(val3);
+        
+        //System.out.println("Output " + val3);
         return val3;
     }
     

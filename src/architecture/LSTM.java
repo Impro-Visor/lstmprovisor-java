@@ -6,6 +6,7 @@
 package architecture;
 
 import filters.Operations;
+import java.util.Arrays;
 import mikera.matrixx.AMatrix;
 import mikera.vectorz.AVector;
 import mikera.arrayz.INDArray;
@@ -72,6 +73,11 @@ public class LSTM implements Loadable{
      */
     public AVector step(AVector input)
     {
+        return this.step(input, false);
+    }
+    
+    public AVector step(AVector input, boolean printInternals)
+    {
 
         //concatenate result vector onto the end of input vector, dimension zero as it is 1-dimensional AVector
         //System.out.println(input);
@@ -91,12 +97,18 @@ public class LSTM implements Loadable{
             //System.out.println(sigmoidMult1[i]);
             sigmoidLayers[i] = Operations.Sigmoid.operate(sigmoidMult1[i]);
             //System.out.println(sigmoidLayers[i]);
-
+            if(printInternals)
+            {
+                System.out.println( "sigmoidLayers[" + i + "]: " + sigmoidLayers[i]);
+                System.out.println("sigmoidLayers[" + i + "] shape: " + Arrays.toString(sigmoidLayers[i].getShape()));
+            }
         }
         //Calculate tanh layer in same fashion as sigmoid layer, but with tanh activation function
         tanhLayer = weights[3].innerProduct(input);
         tanhLayer.add(biases[3]);
         tanhLayer = Operations.Tanh.operate(tanhLayer);
+        if(printInternals)
+            System.out.println( "tanhLayer: " + tanhLayer);
         
         //do the first element-wise multiplication: sigmoid layer 1 and the current cell state
         sigmoidLayers[0].multiply(cellState);
@@ -107,6 +119,8 @@ public class LSTM implements Loadable{
         sigmoidLayers[0].add(sigmoidLayers[1]);
         //System.out.println("addition of " + sigmoidLayers[1]);
         cellState = sigmoidLayers[0];
+        if(printInternals)
+            System.out.println( "next cellState: " + cellState);
         sigmoidLayers[0] = null;
         sigmoidLayers[1] = null;
         
@@ -116,6 +130,21 @@ public class LSTM implements Loadable{
         sigmoidLayers[2] = null;
         
         return result.copy();
+    }
+    
+    public String toString()
+    {
+        return "CellState: " + cellState.toStringFull() + 
+                "\n LastResult: " +result.toStringFull() +
+                "\n Activation biases: " + activationBiases.toStringFull() +
+                "\n Activation weight shape: " + Arrays.toString(activationWeights.getShape()) +
+                "\n Forget biases: " + forgetBiases.toStringFull() +
+                "\n Forget weight shape: " + Arrays.toString(forgetWeights.getShape()) + 
+                "\n Input biases: " + inputBiases.toStringFull() + 
+                "\n Input weight shape: " + Arrays.toString(inputWeights.getShape()) + 
+                "\n Output biases: " + outputBiases.toStringFull() +
+                "\n Output weight shape: " + Arrays.toString(outputWeights.getShape());
+        
     }
 
     @Override

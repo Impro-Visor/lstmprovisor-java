@@ -39,6 +39,7 @@ public class NetworkMeatPacker {
                     if(found[i])
                         numFound++;
                 }
+                /*
                 namesNotFound = new String[meatFiles.length - numFound];
                 int j = 0;
                 for(int i = 0; i < found.length; i++)
@@ -47,7 +48,15 @@ public class NetworkMeatPacker {
                         namesNotFound[j++] = meatFiles[i].getPath();
                 }
                 return namesNotFound;
-
+*/
+                String[] namesFound = new String[numFound];
+                int j = 0;
+                for(int i = 0; i < found.length; i++)
+                {
+                    if(found[i])
+                        namesFound[j++] = meatFiles[i].getPath();
+                }
+                return namesFound;
             }
             else
             {

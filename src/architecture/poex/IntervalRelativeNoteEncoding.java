@@ -30,7 +30,7 @@ public class IntervalRelativeNoteEncoding implements RelativeNoteEncoding {
     
     @Override
     public AVector reset() {
-        this.relpos = this.low_bound + this.random.nextInt(this.high_bound-this.low_bound);
+        this.relpos = 72;
         return NNUtilities.onehot(0, 14);
     }
 

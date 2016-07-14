@@ -77,6 +77,12 @@ public class LSTM implements Loadable{
         //System.out.println(input);
         //System.out.println(result);
         input = input.join(result);
+        if(input.length() != weights[0].getShape(1)){
+            throw new RuntimeException("Input was the wrong shape! Input ( + last out) was "
+                                        + input.length()
+                                        + "but weights were "
+                                        + weights[0].getShape(1));
+        }
         //System.out.println(input);
         //System.out.println(input.rows());
         /* There are 4 layers in LSTM, in order of sig(0) sig(1) sig(2) tanh(3) */

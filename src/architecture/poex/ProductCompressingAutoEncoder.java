@@ -181,13 +181,17 @@ public class ProductCompressingAutoEncoder implements Loadable {
             AVector activations = this.decoder_experts[i].process(full_decoder_input);
             AVector probabilities = enc.getProbabilities(activations, chord_root, this.low_bound, this.high_bound);
             
+            if(probabilities.length() != this.high_bound-this.low_bound+2)
+                throw new RuntimeException("Length of probs was wrong! Was "+ probabilities.length() +", expected "+(this.high_bound-this.low_bound+2));
+            
             if(accum_probabilities == null)
                 accum_probabilities = probabilities.mutable();
             else
                 accum_probabilities.multiply(probabilities);
         }
         
-        accum_probabilities.normalise();
+        accum_probabilities.divide(accum_probabilities.elementSum());
+        
         int sampled = NNUtilities.sample(this.rand, accum_probabilities);
         int midival;
         if(sampled == 0)

@@ -68,13 +68,14 @@ public class IntervalRelativeNoteEncoding implements RelativeNoteEncoding {
         int endpadding = Math.max(0, high_bound - (this.relpos + 12 + 1));
         
         AVector cropped = relative_probs.subVector(startidx, endidx-startidx);
-        cropped.normalise();
         AVector padded = absolute_probs;
         if(startpadding>0)
             padded = padded.join(ZeroVector.create(startpadding));
         padded = padded.join(cropped);
         if(endpadding>0)
             padded = padded.join(ZeroVector.create(endpadding));
+        padded = padded.mutable();
+        padded.divide(padded.elementSum());
         return padded;
     }
 

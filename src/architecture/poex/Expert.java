@@ -50,7 +50,6 @@ public class Expert implements Loadable {
         if(shouldPrintInternals)
             System.out.println(val3);
         
-        //System.out.println("Output " + val3);
         return val3;
     }
     

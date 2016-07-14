@@ -126,10 +126,12 @@ public class Driver {
                     }
                 }
             }
+            int iter=0;
             while(autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
+                    System.out.println(iter++);
                     outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder
-                    if(i++ > 0)
-                    throw new RuntimeException();
+//                    if(i++ > 0)
+//                    throw new RuntimeException();
                     //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
             }
             LogTimer.log("Writing file...");

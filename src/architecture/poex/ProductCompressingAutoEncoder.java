@@ -126,7 +126,6 @@ public class ProductCompressingAutoEncoder implements Loadable {
         int chord_root = (int) raw_chord.get(0);
         AVector chord_type = raw_chord.subVector(1, 12);
         int midinote = (int) raw_melody.get(0);
-        //System.out.println("Beat is " + beat);
         this.beat_part.provide(beat,this.num_experts);
         
         AVector accum_activations = null;
@@ -152,7 +151,7 @@ public class ProductCompressingAutoEncoder implements Loadable {
         if((currTimeStep + 1) % fixedFeatureLength == 0)
         {
             this.queue.enqueueStep(outputVector, 1.0);
-            //System.out.println("Feature at time step " + currTimeStep + ": " + outputVector);
+            System.out.println("Feature at time step " + currTimeStep + ": " + outputVector);
         }
         else
         {
@@ -180,7 +179,7 @@ public class ProductCompressingAutoEncoder implements Loadable {
         this.beat_part.provide(beat,this.num_experts);
         this.feature_part.provide(this.queue.dequeueStep(), this.num_experts);
         AVector accum_probabilities = null;
-        this.decoder_experts[0].setPrintInternals(true);
+//        this.decoder_experts[0].setPrintInternals(true);
         for(int i=0; i<this.num_experts; i++) {
             System.out.println(i);
             RelativeNoteEncoding enc = this.decoder_expert_encodings[i];
@@ -189,7 +188,7 @@ public class ProductCompressingAutoEncoder implements Loadable {
             AVector full_decoder_input = RelativeInputPart.combine(this.decoder_inputs[i], relpos, chord_root, chord_type);
             System.out.println("Decoder expert " + i + " input: " + full_decoder_input);
             AVector activations = this.decoder_experts[i].process(full_decoder_input);
-            System.out.println("Decoder expert " + i + " output: " + activations);
+//            System.out.println("Decoder expert " + i + " output: " + activations);
             AVector probabilities = enc.getProbabilities(activations, chord_root, this.low_bound, this.high_bound);
             
             if(probabilities.length() != this.high_bound-this.low_bound+2)
@@ -201,8 +200,12 @@ public class ProductCompressingAutoEncoder implements Loadable {
                 accum_probabilities.multiply(probabilities);
         }
         accum_probabilities.divide(accum_probabilities.elementSum());
+//        accum_probabilities.normalise();
+        System.out.println("Probabilities sum: " + accum_probabilities.elementSum());
+        System.out.println("Probabilities: " + accum_probabilities);
         
         int sampled = NNUtilities.sample(this.rand, accum_probabilities);
+        System.out.println("Sampled: " + sampled);
         int midival;
         if(sampled == 0)
             midival = -1;

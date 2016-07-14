@@ -31,7 +31,7 @@ public class IntervalRelativeNoteEncoding implements RelativeNoteEncoding {
     @Override
     public AVector reset() {
         this.relpos = 72;
-        return NNUtilities.onehot(0, 14);
+        return NNUtilities.onehot(0, this.activation_width());
     }
 
     @Override

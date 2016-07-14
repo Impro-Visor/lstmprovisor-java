@@ -28,11 +28,9 @@ public class Expert implements Loadable {
     }
     
     public AVector process(AVector input) {
-        System.out.println("Processing input " + input);
         AVector val1 = lstm1.step(input);
         AVector val2 = lstm2.step(val1);
         AVector val3 = fullLayer.forward(val2);
-        System.out.println("Output " + val3);
         return val3;
     }
     

@@ -126,7 +126,6 @@ public class ProductCompressingAutoEncoder implements Loadable {
         int chord_root = (int) raw_chord.get(0);
         AVector chord_type = raw_chord.subVector(1, 12);
         int midinote = (int) raw_melody.get(0);
-        System.out.println("Beat is " + beat);
         this.beat_part.provide(beat,this.num_experts);
         
         AVector accum_activations = null;

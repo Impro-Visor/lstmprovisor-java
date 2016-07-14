@@ -56,7 +56,7 @@ public class Driver {
             System.out.println(name);
         
         Random rand = new Random();
-        String characterString = " !\"'(),-.01245679:?ABCDEFGHIJKLMNOPQRSTUVWYZabcdefghijklmnopqrstuvwxyz";
+        String characterString = " !\"'[],-.01245679:?ABCDEFGHIJKLMNOPQRSTUVWYZabcdefghijklmnopqrstuvwxyz";
         AVector charOut = Vector.createLength(characterString.length());
         GroupedSoftMaxSampler sampler = new GroupedSoftMaxSampler(new Group[]{new Group(0, characterString.length(), true)});
         String songTitle = "";

@@ -25,6 +25,7 @@ public class ProductCompressingAutoEncoder implements Loadable {
     private int outputSize;
     private int low_bound;
     private int high_bound;
+    private boolean variational;
     private int fixedFeatureLength;
     private int currTimeStep;
     private Expert[] encoder_experts;
@@ -47,7 +48,7 @@ public class ProductCompressingAutoEncoder implements Loadable {
     
     private Random rand;
     
-    public ProductCompressingAutoEncoder(LeadSheetDataSequence inputSequence, int fixedFeatureLength, int inputSize, int outputSize, int beatVectorSize, int featureVectorSize, int lowbound, int highbound){
+    public ProductCompressingAutoEncoder(LeadSheetDataSequence inputSequence, int fixedFeatureLength, int inputSize, int outputSize, int beatVectorSize, int featureVectorSize, int lowbound, int highbound, boolean variational){
         this.fixedFeatureLength = fixedFeatureLength;
         this.inputSize = inputSize;
         this.outputSize = outputSize;
@@ -58,6 +59,7 @@ public class ProductCompressingAutoEncoder implements Loadable {
         this.num_experts = 2;
         this.currTimeStep = 0;
         this.queue = new FragmentedNeuralQueue();
+        this.variational = variational;
         
         this.inputSequence = inputSequence;
         this.outputSequence = inputSequence.copy();
@@ -143,13 +145,15 @@ public class ProductCompressingAutoEncoder implements Loadable {
             else
                 accum_activations.add(activations);
         }
+        Operations processOp = variational ? Operations.NormalSample : Operations.Sigmoid;
         if(fixedFeatureLength > 0)
         {
             if((currTimeStep+1) % fixedFeatureLength == 0)
             {
-                Operations.Sigmoid.operate(accum_activations);
-                AVector outputVector = accum_activations.subVector(0, featureVectorSize);
-                this.queue.enqueueStep(outputVector, 1.0);
+                AVector featureVec = processOp.operate(accum_activations);
+                if(featureVec.length() != featureVectorSize)
+                    throw new RuntimeException("Bad activations length");
+                this.queue.enqueueStep(featureVec, 1.0);
             }
             else
             {
@@ -158,8 +162,19 @@ public class ProductCompressingAutoEncoder implements Loadable {
 
             currTimeStep++;
         }
+        else if(fixedFeatureLength == 0)
+        {
+            AVector strengthPart = accum_activations.subVector(0, 1);
+            AVector activationsPart = accum_activations.subVector(1, accum_activations.length()-1);
+            strengthPart = Operations.Sigmoid.operate(strengthPart);
+            AVector featureVec = processOp.operate(activationsPart);
+            if(featureVec.length() != featureVectorSize)
+                throw new RuntimeException("Bad activations length");
+            double strength = strengthPart.get(0);
+            this.queue.enqueueStep(featureVec, strength);
+        }
         else
-            throw new RuntimeException("Set feature size is not greater than zero.");
+            throw new RuntimeException("Set feature size is negative!");
     }
     
     

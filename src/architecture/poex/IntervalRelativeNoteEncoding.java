@@ -57,9 +57,9 @@ public class IntervalRelativeNoteEncoding implements RelativeNoteEncoding {
 
     @Override
     public AVector getProbabilities(AVector activations, int chord_root, int low_bound, int high_bound) {
-        Operations.Softmax.operate(activations);
-        AVector absolute_probs = activations.subVector(0, 2);
-        AVector relative_probs = activations.subVector(2, activations.length()-2);
+        AVector probs = Operations.Softmax.operate(activations);
+        AVector absolute_probs = probs.subVector(0, 2);
+        AVector relative_probs = probs.subVector(2, activations.length()-2);
         
         int start_diff = low_bound - (this.relpos - 12);
         int startidx = Math.max(0, start_diff);

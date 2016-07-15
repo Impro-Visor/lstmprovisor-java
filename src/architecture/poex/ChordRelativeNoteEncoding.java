@@ -42,9 +42,9 @@ public class ChordRelativeNoteEncoding implements RelativeNoteEncoding {
 
     @Override
     public AVector getProbabilities(AVector activations, int chord_root, int low_bound, int high_bound) {
-        Operations.Softmax.operate(activations);
-        AVector absolute_probs = activations.subVector(0, 2);
-        AVector relative_probs = activations.subVector(2, activations.length()-2);
+        AVector probs = Operations.Softmax.operate(activations);
+        AVector absolute_probs = probs.subVector(0, 2);
+        AVector relative_probs = probs.subVector(2, activations.length()-2);
         AVector rolled = NNUtilities.roll(relative_probs, chord_root-low_bound);
         int join_times = (high_bound - low_bound + 11)/12;
         AVector tiled = rolled;

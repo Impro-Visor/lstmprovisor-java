@@ -101,7 +101,7 @@ public class GenerativeProductModel implements Loadable {
                 accum_probabilities.multiply(probabilities);
         }
         
-        accum_probabilities.normalise();
+        accum_probabilities.divide(accum_probabilities.elementSum());
         int sampled = NNUtilities.sample(this.rand, accum_probabilities);
         int midival;
         if(sampled == 0)

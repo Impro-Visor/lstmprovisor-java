@@ -5,7 +5,13 @@
  */
 package architecture;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import mikera.vectorz.AVector;
 import mikera.vectorz.Vector;
@@ -13,6 +19,9 @@ import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import mikera.matrixx.AMatrix;
+import mikera.matrixx.Matrix;
+import nickd4j.ReadWriteUtilities;
 
 /**
  * Class FragmentedNeuralQueue is an implementation of a fragmented neural queue simplified for operation (cannot be used for training) of a CompressingAutoencoder
@@ -297,6 +306,7 @@ public class FragmentedNeuralQueue {
         throw new RuntimeException("The neural queue is empty!!");
     }
     
+    
     /**
      * Removes an element of the queue in first-in, first-out order.
      */
@@ -306,5 +316,67 @@ public class FragmentedNeuralQueue {
         vectorList.remove(0);
         totalStrength -= strengthList.remove(0);
         return result;
+    }
+    
+    public void initFromFile(String filePath)
+    {
+        try{
+            System.out.println("starting init");
+            BufferedReader reader = new BufferedReader(new FileReader(filePath));
+            Object[] lines = reader.lines().toArray();
+            String contents = "";
+            for(int i = 0; i < lines.length; i++)
+            {
+                contents += (String) lines[i];
+                if(i < lines.length - 1)
+                    contents += "\n";
+            }
+            String strengthLabel = "(strengths)\n";
+            String vectorLabel = "(vectors)\n";
+            int strengthStart = contents.indexOf(strengthLabel) + strengthLabel.length();
+            int strengthEnd = contents.indexOf(vectorLabel);
+            int vectorStart = strengthEnd + vectorLabel.length();
+            String strengthContents = contents.substring(strengthStart, strengthEnd);
+            String vectorContents = contents.substring(vectorStart);
+            AVector strengths = (AVector) ReadWriteUtilities.readNumpyCSVString(strengthContents);
+            AMatrix vectors = (AMatrix) ReadWriteUtilities.readNumpyCSVString(vectorContents);
+            
+            initFromData(strengths, vectors);
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void writeToFile(String filePath)
+    {
+        try {
+            System.out.println("starting write");
+            BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
+            writer.write("(strengths)");
+            writer.newLine();
+            AVector strengthData = Vector.create(strengthList);
+            writer.write(ReadWriteUtilities.getNumpyCSVString(strengthData));
+            writer.write("(vectors)");
+            writer.newLine();
+            AVector[] vectorArray = new AVector[vectorList.size()];
+            AMatrix vectorData = Matrix.create(vectorList.toArray(vectorArray));
+            writer.write(ReadWriteUtilities.getNumpyCSVString(vectorData));
+            System.out.println(" oh nooooooooo");
+        } catch(IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    public void initFromData(AVector strengths, AMatrix vectors)
+    {
+        System.out.println("starting init from data");
+        strengthList.clear();
+        vectorList.clear();
+        for(int i = 0; i < strengths.length(); i++)
+            strengthList.add(strengths.get(i));
+        for(int i = 0; i < vectors.rowCount(); i++)
+            vectorList.add(vectors.getRow(i));
     }
 }

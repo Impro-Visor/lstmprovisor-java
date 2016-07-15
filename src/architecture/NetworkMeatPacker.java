@@ -35,7 +35,7 @@ public class NetworkMeatPacker {
                 for(int i = 0; i < meatFiles.length; i++)
                 {
                     //System.out.println(meatFiles[i].getPath());
-                    found[i] = network.load(nickd4j.ReadUtilities.readNumpyCSV(meatFiles[i].getPath()), network.pathCdr(meatFiles[i].getName()).replaceFirst(".csv", ""));
+                    found[i] = network.load(nickd4j.ReadWriteUtilities.readNumpyCSVFile(meatFiles[i].getPath()), network.pathCdr(meatFiles[i].getName()).replaceFirst(".csv", ""));
                     if(found[i])
                         numFound++;
                 }

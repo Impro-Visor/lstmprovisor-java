@@ -83,7 +83,7 @@ public class Driver {
         
         //check if we have three arguments (first is input file path, second is output folder path)
        
-        if (args.length > 2) {
+        if (args.length > 4) {
             
             //Initialization
             LogTimer.initStartTime();   //start our logging timer to keep track of our execution time
@@ -126,6 +126,8 @@ public class Driver {
                     }
                 }
             }
+            String queueFilePath = args[4] + java.io.File.separator + inputFile.getName().replace(".ls", ".q");
+            autoencoder.hotSwapQueue(queueFilePath, queueFilePath);
             while(autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
                     outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder
                     //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       

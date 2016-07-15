@@ -177,6 +177,23 @@ public class ProductCompressingAutoEncoder implements Loadable {
             throw new RuntimeException("Set feature size is negative!");
     }
     
+    public void hotSwapQueue(String inFilePath)
+    {
+        queue.initFromFile(inFilePath);
+    }
+    
+    public void hotSwapQueue(String inFilePath, String outFilePath)
+    {
+        queue.writeToFile(outFilePath);
+        queue.initFromFile(inFilePath);
+    }
+    
+    public FragmentedNeuralQueue hotSwapQueue(FragmentedNeuralQueue newQueue)
+    {
+        FragmentedNeuralQueue oldQueue = this.queue;
+        this.queue = newQueue;
+        return oldQueue;
+    }
     
     public boolean canDecode() {
         return queue.hasFullBuffer();

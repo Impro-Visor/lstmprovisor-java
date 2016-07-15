@@ -20,6 +20,10 @@ public class ChordEncoder {
     public AVector encode(String root, String type, String bass)
     {
         AVector chordData = CHORD_TYPES.getValue(type);
+        return encode(root, chordData, bass);
+    }
+    public AVector encode(String root, AVector chordData, String bass)
+    {
         //System.out.println();
         //for(int i = 0; i < chordData.length(); i++)
         //    System.out.print(chordData.getDouble(i) + " ");

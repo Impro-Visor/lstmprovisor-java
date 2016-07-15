@@ -5,25 +5,34 @@
  */
 package io.leadsheet;
 
+import imp.data.Chord;
+
 /**
  *
  * @author cssummer16
  */
-public class Chord {
+public class ChordInfo {
     private int duration;
     private String root;
     private String type;
     private String bass;
     
-    public Chord(int duration, String root, String type, String bass) {
+    public ChordInfo(int duration, String root, String type, String bass) {
         this.duration = duration;
         this.root = root;
         this.type = type;
         this.bass = (bass == null) ? root : bass;
     }
     
-    public Chord(int duration, String root, String type) {
+    public ChordInfo(int duration, String root, String type) {
         this(duration, root, type, null);
+    }
+
+    ChordInfo(Chord chord) {
+        this.duration = chord.getRhythmValue() / Constants.RESOLUTION_SCALAR;
+        this.root = chord.getRoot().toUpperCase();
+        this.bass = chord.getChordSymbol().getBass().toString().toUpperCase();
+        this.type = chord.getQuality();
     }
     
     public int getDuration()

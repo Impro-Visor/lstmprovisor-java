@@ -13,6 +13,8 @@ import java.io.FileNotFoundException;
 import encoding.EncodingParameters;
 import encoding.NoteEncoder;
 import encoding.ChordEncoder;
+import imp.data.Note;
+import imp.data.NoteSymbol;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.ArrayList;
@@ -34,7 +36,7 @@ public class LeadSheetIO {
 
     public static LeadSheetDataSequence readLeadSheet(String filename) {
         NoteSymbol[] currMelody = readLeadSheetMelody(filename);
-        Chord[] currChords = LeadSheetIO.readLeadSheetChords(filename);
+        ChordInfo[] currChords = LeadSheetIO.readLeadSheetChords(filename);
         
         LeadSheetDataSequence sequence = new LeadSheetDataSequence();
         NoteEncoder noteEncoder = EncodingParameters.noteEncoder;
@@ -61,7 +63,7 @@ public class LeadSheetIO {
         }
         int chordSteps = 0;
         ChordEncoder chordEncoder = EncodingParameters.chordEncoder;
-        for(Chord chord : currChords)
+        for(ChordInfo chord : currChords)
         {
             //System.out.println(chord.getRoot() + chord.getType());
             //System.out.println(chord.getDuration());
@@ -139,16 +141,16 @@ public class LeadSheetIO {
         return melody.toArray(notes);
     } // end of method parseLeadSheet
 
-    public static Chord[] readLeadSheetChords(File file) {
+    public static ChordInfo[] readLeadSheetChords(File file) {
         return LeadSheetIO.readLeadSheetChords(file.getAbsolutePath());
     }
     
     //TODO: make this support more than 8th note resolution files
-    public static Chord[] readLeadSheetChords(String filename) {
+    public static ChordInfo[] readLeadSheetChords(String filename) {
 
-        ArrayList<Chord> chords = new ArrayList<Chord>();
-        ArrayList<Chord> partialChordList = new ArrayList<Chord>();
-        Chord lastChord = null;
+        ArrayList<ChordInfo> chords = new ArrayList<ChordInfo>();
+        ArrayList<ChordInfo> partialChordList = new ArrayList<ChordInfo>();
+        ChordInfo lastChord = null;
         Pattern p = Pattern.compile("([A-G](?:#|b)?)([^/]*)(?:/(.+))?");
         try {
             Tokenizer tokenizer = new Tokenizer(new FileInputStream(filename));
@@ -158,18 +160,16 @@ public class LeadSheetIO {
                     String strToken = (String)temp;
                     char firstChar = strToken.charAt(0);
                     if (Character.isUpperCase(firstChar)) { //Check for chord symbols   
-                        Chord chord;
+                        ChordInfo chord;
                         if(strToken.equals("NC")) {
-                            chord = new Chord(0,"NC","NC");
+                            chord = new ChordInfo(0,"NC","NC");
                         } else {
                             Matcher m = p.matcher(strToken);
                             if(m.matches()){
                                 String root = m.group(1);
                                 String type = m.group(2);
                                 String slash_bass = m.group(3);
-                                chord = new Chord(0,root,type,slash_bass);
-                                
-                                //System.out.println(strToken + " -> " + root + " " + type + " " + slash_bass);
+                                chord = new ChordInfo(0,root,type,slash_bass);
                             } else {
                                 throw new RuntimeException("Malformed chord symbol " + strToken);
                             }
@@ -195,7 +195,7 @@ public class LeadSheetIO {
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
         }
-        Chord[] chordArray = new Chord[chords.size()];
+        ChordInfo[] chordArray = new ChordInfo[chords.size()];
         return chords.toArray(chordArray);
     } 
     

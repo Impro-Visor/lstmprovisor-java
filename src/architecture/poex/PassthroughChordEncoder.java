@@ -18,10 +18,8 @@ import mikera.vectorz.Vector;
  */
 public class PassthroughChordEncoder extends ChordEncoder {
     @Override
-    public AVector encode(String root, String type, String bass)
+    public AVector encode(String root, AVector chordData, String bass)
     {
-        AVector chordData = CHORD_TYPES.getValue(type);
-            
         if(chordData == null)
             return null;
         else {

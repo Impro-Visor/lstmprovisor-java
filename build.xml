@@ -2,6 +2,7 @@
 
     
     <property name="lib.dir" value="./lib"/>
+    <property name="improvisordistdir" value="${basedir}/../Impro-Visor/improvisor811"/>
     
     <!-- ivy start -->
     <property name="ivy.install.version" value="2.1.0-rc2" />
@@ -59,6 +60,7 @@
     <path id="libs-classpath">
       <pathelement location="${basedir}/lib"/>
       <fileset dir="${basedir}/lib" includes="*.jar"/>
+      <fileset dir="${improvisordistdir}" includes="*.jar"/>
       <!--pathelement location="${basedir}/../rbm-provisor-code-1/dist"/>-->
       <!--fileset dir="${basedir}/../rbm-provisor-code-1/dist" includes="*.jar"/>-->
     </path>
@@ -74,9 +76,10 @@
         <mkdir dir="build/jar"/>
         <jar destfile="build/jar/LSTMprovisor.jar" basedir="build/classes">
             <zipgroupfileset dir="${basedir}/lib" includes="*.jar" />
+            <zipgroupfileset dir="${improvisordistdir}" includes="*.jar"/>
             <!--zipgroupfileset dir="${basedir}/../rbm-provisor-code-1/dist" includes="*.jar" />-->
             <manifest>
-                <attribute name="Main-Class" value="main.Driver"/>
+                <attribute name="Main-Class" value="main.MiscTest"/>
             </manifest>
         </jar>
     </target>

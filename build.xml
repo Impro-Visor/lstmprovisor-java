@@ -82,7 +82,7 @@
     </target>
 
     <target name="run">
-        <java jar="build/jar/LSTMprovisor.jar" fork="true" args="${basedir}/Inputs/0150.ls ${basedir}/Outputs ${basedir}/BrainData/CircleOfThirdsHideOutput ${basedir}/BrainData/corn_params"/>
+        <java jar="build/jar/LSTMprovisor.jar" fork="true" args="${basedir}/Inputs/0150.ls ${basedir}/Outputs ${basedir}/BrainData/poex-fixed-feature-params ${basedir}/BrainData/jazzname_params ${basedir}/Queues"/>
         
     </target>
 

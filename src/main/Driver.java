@@ -9,6 +9,7 @@ import architecture.NetworkMeatPacker;
 import java.io.File;
 import io.leadsheet.LeadSheetDataSequence;
 import architecture.CompressingAutoEncoder;
+import architecture.FragmentedNeuralQueue;
 import architecture.FullyConnectedLayer;
 import architecture.LSTM;
 import architecture.LeadsheetAutoencoderInputManager;
@@ -30,8 +31,11 @@ import mikera.vectorz.Vector;
  */
 public class Driver {
     private static final boolean advanceDecoding = false; //should we start decoding as soon as possible?
+    private static final boolean shouldWriteQueue = false;
+    private static final boolean interpolateTest = true;
     
     public static void main(String[] args) {
+        
         //here is just silly code for generating name based on an LSTM lol $wag
         LSTM lstm = new LSTM();
         FullyConnectedLayer fullLayer = new FullyConnectedLayer(Operations.None);
@@ -126,8 +130,28 @@ public class Driver {
                     }
                 }
             }
-            String queueFilePath = args[4] + java.io.File.separator + inputFile.getName().replace(".ls", ".q");
-            autoencoder.hotSwapQueue(queueFilePath, queueFilePath);
+            
+            if(shouldWriteQueue)
+            {
+                String queueFilePath = args[4] + java.io.File.separator + inputFile.getName().replace(".ls", ".q");
+                autoencoder.hotSwapQueue(queueFilePath, queueFilePath);
+            }
+            if(interpolateTest)
+            {
+                String referenceQueueFilePath = args[5];
+            
+                FragmentedNeuralQueue refQueue = new FragmentedNeuralQueue();
+                refQueue.initFromFile(referenceQueueFilePath);
+                
+                FragmentedNeuralQueue currQueue = autoencoder.getQueue();
+                //currQueue.writeToFile(queueFilePath);
+                
+                currQueue.basicInterpolate(refQueue, 0.7);
+            
+                autoencoder.setQueue(currQueue);
+            }
+            
+            
             while(autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
                     outputSequence.pushStep(null, null, autoencoder.decodeStep()); //take sampled data for a timestep from autoencoder
                     //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       

@@ -262,6 +262,11 @@ public class FragmentedNeuralQueue {
         return totalStrength >= fragmentStrength;
     }
     
+    public String toString()
+    {
+        return strengthList.size() + " " + vectorList.size();
+    }
+    
     /**
      * Read vectors scaled by their strengths until we fill the fragment, then return the fragment.
      * A vector is scaled by a portion of their strength if their strength would overfill the fragment.
@@ -306,6 +311,51 @@ public class FragmentedNeuralQueue {
         throw new RuntimeException("The neural queue is empty!!");
     }
     
+    public FragmentedNeuralQueue copy()
+    {
+        FragmentedNeuralQueue duplicate = new FragmentedNeuralQueue();
+        duplicate.fragmentStrength = this.fragmentStrength;
+        duplicate.totalStrength = this.totalStrength;
+        strengthList.forEach((strength) -> {duplicate.strengthList.add(strength);});
+        vectorList.forEach((vector) -> {duplicate.vectorList.add(vector.copy());});
+        return duplicate;
+    }
+    
+    public void basicInterpolate(FragmentedNeuralQueue target, double ipStrength)
+    {
+        ArrayList<Integer> queueIndexes = new ArrayList<>();
+        System.out.println("Starting basic interpolate");
+        for(int i = 0; i < strengthList.size(); i++)
+        {
+            if(strengthList.get(i) > 0.1) {
+                queueIndexes.add(i);
+                System.out.println("queue index: " + i);
+            }
+        }
+        ArrayList<Integer> refQueueIndexes = new ArrayList<>();
+        for(int i = 0; i < target.strengthList.size(); i++)
+        {
+            if(target.strengthList.get(i) > 0.1) {
+                refQueueIndexes.add(i);
+                System.out.println("reference index: " + i);
+            }
+        }
+        int refFeatureIndex = 0;
+        System.out.println(target.vectorList.size());
+        System.out.println(target.strengthList.size());
+        for(Integer index : queueIndexes)
+        {
+            //this vector will become the diff multiplied by the ipStrength
+            System.out.println(refQueueIndexes.get(refFeatureIndex));
+            AVector diff = target.vectorList.get(refQueueIndexes.get(refFeatureIndex)).copy();
+            System.out.println("read: " + target.vectorList.get(refQueueIndexes.get(refFeatureIndex)));
+            diff.sub(vectorList.get(index));
+            refFeatureIndex = (refFeatureIndex + 1) % refQueueIndexes.size();
+            diff.multiply(ipStrength);
+            vectorList.get(index).add(diff);
+            System.out.println("new: " + vectorList.get(index));
+        }
+    }
     
     /**
      * Removes an element of the queue in first-in, first-out order.
@@ -363,6 +413,7 @@ public class FragmentedNeuralQueue {
             AMatrix vectorData = Matrix.create(vectorList.toArray(vectorArray));
             writer.write(ReadWriteUtilities.getNumpyCSVString(vectorData));
             System.out.println(" oh nooooooooo");
+            writer.close();
         } catch(IOException e)
         {
             e.printStackTrace();

@@ -84,6 +84,8 @@ public class ReadWriteUtilities {
             
             contents.add(lines[i].split(","));
         }
+        System.out.println("Contents rows: " + contents.size());
+        System.out.println("Contents columns: " + contents.get(0).length);
         return contents;
     }
     
@@ -114,6 +116,7 @@ public class ReadWriteUtilities {
                 stringData[row] = String.join(",", rowData);
                 System.out.println(row);
             }
+            System.out.println("write rows: " + stringData.length);
             System.out.println("final join");
             String finalData = String.join("\n", stringData);
             return finalData;

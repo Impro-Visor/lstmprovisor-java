@@ -8,6 +8,7 @@ package nickd4j;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import mikera.arrayz.INDArray;
@@ -31,6 +32,12 @@ public class ReadWriteUtilities {
         return getINDArray(getContentsFromNumpyCSVString(numpyString));
     }
     
+    public static INDArray readNumpyCSVReader(Reader reader)
+    {
+            return getINDArray(getContentsFromNumpyCSVReader(reader));
+    }
+    
+    
     public static INDArray getINDArray(List<String[]> contents)
     {
         //will get an error if you don't have any data, so don't do that lol
@@ -51,10 +58,10 @@ public class ReadWriteUtilities {
             }
     }
     
-    public static List<String[]> getContentsFromNumpyCSVFile(String filePath)
+    public static List<String[]> getContentsFromNumpyCSVReader(Reader input_reader)
     {
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(filePath));
+            BufferedReader reader = new BufferedReader(input_reader);
             
             ArrayList<String[]> contents = new ArrayList<>();
             boolean reading = true;
@@ -68,7 +75,17 @@ public class ReadWriteUtilities {
             }
             return contents;
         } catch (IOException e) {
-                  e.printStackTrace();  
+            e.printStackTrace();  
+        }
+        return null;
+    }
+    
+    public static List<String[]> getContentsFromNumpyCSVFile(String filePath)
+    {
+        try {
+            return getContentsFromNumpyCSVReader(new FileReader(filePath));
+        } catch (IOException e) {
+            e.printStackTrace();  
         }
         return null;
     }

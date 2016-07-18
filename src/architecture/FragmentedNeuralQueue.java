@@ -420,6 +420,8 @@ public class FragmentedNeuralQueue {
         }
     }
     
+    
+    
     public void initFromData(AVector strengths, AMatrix vectors)
     {
         System.out.println("starting init from data");

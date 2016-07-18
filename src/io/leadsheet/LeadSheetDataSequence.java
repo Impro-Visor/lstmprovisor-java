@@ -46,6 +46,16 @@ public class LeadSheetDataSequence implements DataSequence{
         return tempo;
     }
     
+    public void concat(LeadSheetDataSequence additional)
+    {
+        while(!additional.beats.isEmpty())
+            beats.offer(additional.beats.poll());
+        while(!additional.melody.isEmpty())
+            melody.offer(additional.melody.poll());
+        while(!additional.chords.isEmpty())
+            chords.offer(additional.chords.poll());
+    }
+    
     /**
      * Copies this LeadSheetDataSequence by copying input LeadSheetDataSequence's beat, chord, and melody queues (It does duplicate AVector objects!)
      * @return A duplicate of this LeadSheetDataSequence 

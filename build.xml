@@ -79,7 +79,7 @@
             <zipgroupfileset dir="${improvisordistdir}" includes="*.jar"/>
             <!--zipgroupfileset dir="${basedir}/../rbm-provisor-code-1/dist" includes="*.jar" />-->
             <manifest>
-                <attribute name="Main-Class" value="main.MiscTest"/>
+                <attribute name="Main-Class" value="main.DataPartIOTest"/>
             </manifest>
         </jar>
     </target>

@@ -61,7 +61,7 @@ public class Driver {
         String autoEncoderParamsPath = config.getString("auto_encoder_params");
         String nameGeneratorParamsPath = config.getString("name_generator_params");
         String queueFolderPath = config.getString("queue_folder");
-        String referenceQueuePath = config.getString("reference_queue");
+        String referenceQueuePath = config.getString("reference_queue", "nil");
         boolean shouldWriteQueue = config.getBoolean("should_write_generated_queue");
         boolean frankensteinTest = config.getBoolean("queue_tests_frankenstein");
         boolean interpolateTest = config.getBoolean("queue_tests_interpolation");

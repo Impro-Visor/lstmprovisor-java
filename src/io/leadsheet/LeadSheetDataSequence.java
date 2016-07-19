@@ -5,6 +5,7 @@
  */
 package io.leadsheet;
 
+import architecture.DataStep;
 import java.util.Queue;
 import io.DataSequence;
 import java.util.LinkedList;
@@ -120,8 +121,11 @@ public class LeadSheetDataSequence implements DataSequence{
     }
     
     @Override
-    public AVector retrieve() {
-        return beats.poll().join(chords.poll()).join(melody.poll());
+    public DataStep retrieve() {
+        DataStep currStep = new DataStep();
+        currStep.addNames("beat","chord","melody");
+        currStep.addComponents(beats.poll(),chords.poll(),melody.poll());
+        return currStep;
     }
     
     @Override

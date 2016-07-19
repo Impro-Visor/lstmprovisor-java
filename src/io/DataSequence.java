@@ -4,14 +4,14 @@
  * and open the template in the editor.
  */
 package io;
-import mikera.vectorz.AVector;
+import architecture.DataStep;
 
 /**
  * Interface DataSequence describes commands to retrieve sequential AVector data
  * @author Nicholas Weintraut
  */
 public interface DataSequence {
-    public AVector retrieve();
+    public DataStep retrieve();
     public boolean hasNext();
     public int entrySize();
     public<T extends DataSequence> T copy();

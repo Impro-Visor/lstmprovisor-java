@@ -5,6 +5,7 @@
  */
 package architecture.poex;
 
+import architecture.DataStep;
 import architecture.FragmentedNeuralQueue;
 import architecture.Loadable;
 import filters.Operations;
@@ -114,8 +115,11 @@ public class ProductCompressingAutoEncoder implements Loadable {
         return !queue.isEmpty();
     }
     
-    public void encodeStep(AVector beat, AVector chord, AVector melody) {
+    public void encodeStep(DataStep currStep) {
        
+        AVector chord = currStep.get("chord");
+        AVector beat = currStep.get("beat");
+        AVector melody = currStep.get("melody");
         int chord_root = (int) chord.get(0);
         AVector chord_type = chord.subVector(1, 12);
         int midinote = (int) melody.get(0);
@@ -204,7 +208,9 @@ public class ProductCompressingAutoEncoder implements Loadable {
         // don't do anything (for now?)
     }
     
-    public AVector decodeStep(AVector beat, AVector chord) {
+    public AVector decodeStep(DataStep currStep) {
+        AVector chord = currStep.get("chord");
+        AVector beat = currStep.get("beat");
         int chord_root = (int) chord.get(0);
         AVector chord_type = chord.subVector(1, 12);
         this.beat_part.provide(beat,this.num_experts);

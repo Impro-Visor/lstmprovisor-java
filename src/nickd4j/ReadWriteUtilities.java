@@ -101,8 +101,8 @@ public class ReadWriteUtilities {
             
             contents.add(lines[i].split(","));
         }
-        System.out.println("Contents rows: " + contents.size());
-        System.out.println("Contents columns: " + contents.get(0).length);
+        //System.out.println("Contents rows: " + contents.size());
+        //System.out.println("Contents columns: " + contents.get(0).length);
         return contents;
     }
     
@@ -117,7 +117,7 @@ public class ReadWriteUtilities {
             int numRows = (shape.length > 0) ? shape[0] : 0;
             int numCols = (shape.length > 1) ? shape[1] : 1;
             String[] stringData = new String[numRows];
-            System.out.println("about to loop string");
+            //System.out.println("about to loop string");
             for(int row = 0; row < numRows; row++)
             {
                 String[] rowData = new String[numCols];
@@ -131,10 +131,10 @@ public class ReadWriteUtilities {
                     rowData[col] = Double.toString(currVal);
                 }
                 stringData[row] = String.join(",", rowData);
-                System.out.println(row);
+                //System.out.println(row);
             }
-            System.out.println("write rows: " + stringData.length);
-            System.out.println("final join");
+            //System.out.println("write rows: " + stringData.length);
+            //System.out.println("final join");
             String finalData = String.join("\n", stringData);
             return finalData;
         }

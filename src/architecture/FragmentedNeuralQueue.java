@@ -324,12 +324,12 @@ public class FragmentedNeuralQueue {
     public void basicInterpolate(FragmentedNeuralQueue target, double ipStrength)
     {
         ArrayList<Integer> queueIndexes = new ArrayList<>();
-        System.out.println("Starting basic interpolate");
+        //System.out.println("Starting basic interpolate");
         for(int i = 0; i < strengthList.size(); i++)
         {
             if(strengthList.get(i) > 0.1) {
                 queueIndexes.add(i);
-                System.out.println("queue index: " + i);
+                //System.out.println("queue index: " + i);
             }
         }
         ArrayList<Integer> refQueueIndexes = new ArrayList<>();
@@ -337,23 +337,23 @@ public class FragmentedNeuralQueue {
         {
             if(target.strengthList.get(i) > 0.1) {
                 refQueueIndexes.add(i);
-                System.out.println("reference index: " + i);
+                //System.out.println("reference index: " + i);
             }
         }
         int refFeatureIndex = 0;
-        System.out.println(target.vectorList.size());
-        System.out.println(target.strengthList.size());
+        //System.out.println(target.vectorList.size());
+        //System.out.println(target.strengthList.size());
         for(Integer index : queueIndexes)
         {
             //this vector will become the diff multiplied by the ipStrength
-            System.out.println(refQueueIndexes.get(refFeatureIndex));
+            //System.out.println(refQueueIndexes.get(refFeatureIndex));
             AVector diff = target.vectorList.get(refQueueIndexes.get(refFeatureIndex)).copy();
-            System.out.println("read: " + target.vectorList.get(refQueueIndexes.get(refFeatureIndex)));
+            //System.out.println("read: " + target.vectorList.get(refQueueIndexes.get(refFeatureIndex)));
             diff.sub(vectorList.get(index));
             refFeatureIndex = (refFeatureIndex + 1) % refQueueIndexes.size();
             diff.multiply(ipStrength);
             vectorList.get(index).add(diff);
-            System.out.println("new: " + vectorList.get(index));
+            //System.out.println("new: " + vectorList.get(index));
         }
     }
     
@@ -371,7 +371,7 @@ public class FragmentedNeuralQueue {
     public void initFromFile(String filePath)
     {
         try{
-            System.out.println("starting init");
+            //System.out.println("starting init");
             BufferedReader reader = new BufferedReader(new FileReader(filePath));
             Object[] lines = reader.lines().toArray();
             String contents = "";
@@ -401,7 +401,7 @@ public class FragmentedNeuralQueue {
     public void writeToFile(String filePath)
     {
         try {
-            System.out.println("starting write");
+            //System.out.println("starting write");
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
             writer.write("(strengths)");
             writer.newLine();
@@ -412,7 +412,7 @@ public class FragmentedNeuralQueue {
             AVector[] vectorArray = new AVector[vectorList.size()];
             AMatrix vectorData = Matrix.create(vectorList.toArray(vectorArray));
             writer.write(ReadWriteUtilities.getNumpyCSVString(vectorData));
-            System.out.println(" oh nooooooooo");
+            //System.out.println(" oh nooooooooo");
             writer.close();
         } catch(IOException e)
         {
@@ -424,7 +424,7 @@ public class FragmentedNeuralQueue {
     
     public void initFromData(AVector strengths, AMatrix vectors)
     {
-        System.out.println("starting init from data");
+        //System.out.println("starting init from data");
         strengthList.clear();
         vectorList.clear();
         for(int i = 0; i < strengths.length(); i++)

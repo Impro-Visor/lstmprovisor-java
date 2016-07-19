@@ -68,13 +68,15 @@ public class NetworkMeatPacker {
                 ZipInputStream zin = new ZipInputStream(new BufferedInputStream(fis));
                 ZipEntry entry;
                 while((entry = zin.getNextEntry()) != null) {
-                    if(!entry.getName().contains(filter))
-                        continue;
-                    String loadPath = network.pathCdr(entry.getName()).replaceFirst(".csv", "");
-                    Reader zreader = new InputStreamReader(zin);
-                    boolean found = network.load(nickd4j.ReadWriteUtilities.readNumpyCSVReader(zreader), loadPath);
-                    if(!found)
-                        namesNotFoundList.add(entry.getName());
+                   
+                    if(entry.getName().contains(filter) && !(entry.getName().contains(".DS_Store")))
+                    {
+                        String loadPath = network.pathCdr(entry.getName()).replaceFirst(".csv", "");
+                        Reader zreader = new InputStreamReader(zin);
+                        boolean found = network.load(nickd4j.ReadWriteUtilities.readNumpyCSVReader(zreader), loadPath);
+                        if(!found)
+                            namesNotFoundList.add(entry.getName());
+                    }
                 }
                 namesNotFound = new String[namesNotFoundList.size()];
                 return namesNotFoundList.toArray(namesNotFound);

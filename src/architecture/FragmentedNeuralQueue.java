@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Random;
 import mikera.matrixx.AMatrix;
 import mikera.matrixx.Matrix;
+import mikera.vectorz.Vectorz;
 import nickd4j.ReadWriteUtilities;
 
 /**
@@ -62,6 +63,67 @@ public class FragmentedNeuralQueue {
     public boolean isEmpty()
     {
         return vectorList.isEmpty();
+    }
+    
+    public void resetFeatures()
+    {
+        for(AVector vector : vectorList)
+        {
+            vector.sub(vector);
+        }
+    }
+    
+    public void crossover(FragmentedNeuralQueue otherQueue, int numSwaps)
+    {
+        Random rand = new Random();
+        List<Integer> featureIndexes = getFeatureIndexes();
+        for(int i = 0; i < numSwaps; i++)
+        {
+            int selectedFeatureIndex = rand.nextInt(featureIndexes.size());
+            AVector tempVector = vectorList.get(selectedFeatureIndex);
+            vectorList.set(selectedFeatureIndex, otherQueue.vectorList.get(selectedFeatureIndex));
+            otherQueue.vectorList.set(selectedFeatureIndex, tempVector);
+        }
+    }
+    
+    public void addNoise(double magnitude)
+    {
+        for(AVector vector : vectorList)
+        {
+            AVector noiseVector = Vector.createLength(vector.length());
+            Random rand = new Random();
+            Vectorz.fillNormal(noiseVector, rand);
+            noiseVector.multiply(magnitude);
+            vector.add(noiseVector);
+        }
+    }
+    
+    public void weightedAverageFeatures(List<FragmentedNeuralQueue> queues, AVector weights)
+    {
+        resetFeatures();
+        
+        //in place construction of Matrix
+        /*AMatrix avgFeatureMatrix = Matrix.create(vectorList.toArray(new AVector[0]));
+        for(int i = 0; i < queues.size(); i++)
+        {
+            System.out.println(weights.get(i));
+            System.out.println(queues.get(i).vectorList.get(23));
+            AMatrix featureMatrix = Matrix.create(queues.get(i).vectorList.toArray(new AVector[0])).multiplyCopy(weights.get(i));
+            System.out.println(featureMatrix.getRow(23));
+            System.out.println(featureMatrix);
+            avgFeatureMatrix.add(featureMatrix);
+            System.out.println(avgFeatureMatrix.getRow(23));
+            System.out.println(avgFeatureMatrix);
+        }*/
+        for(int i = 0; i < queues.size(); i++)
+        {
+            for(int j = 0; j < vectorList.size(); j++)
+            {
+                vectorList.get(j).add(queues.get(i).vectorList.get(j).multiplyCopy(weights.get(i)));
+            }
+            
+        }
+        //System.out.println(vectorList.get(23));
     }
     
     /**
@@ -321,7 +383,7 @@ public class FragmentedNeuralQueue {
         return duplicate;
     }
     
-    public void basicInterpolate(FragmentedNeuralQueue target, double ipStrength)
+    public List<Integer> getFeatureIndexes()
     {
         ArrayList<Integer> queueIndexes = new ArrayList<>();
         //System.out.println("Starting basic interpolate");
@@ -332,6 +394,12 @@ public class FragmentedNeuralQueue {
                 //System.out.println("queue index: " + i);
             }
         }
+        return queueIndexes;
+    }
+    
+    public void basicInterpolate(FragmentedNeuralQueue target, double ipStrength)
+    {
+        List<Integer> queueIndexes = getFeatureIndexes();
         ArrayList<Integer> refQueueIndexes = new ArrayList<>();
         for(int i = 0; i < target.strengthList.size(); i++)
         {

@@ -34,6 +34,7 @@ import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.convert.DefaultListDelimiterHandler;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import population.QueuePopulation;
 
 /**
  * Class Driver is an implementation test for CompressingAutoEncoder which reads
@@ -65,6 +66,7 @@ public class Driver {
         boolean shouldWriteQueue = config.getBoolean("should_write_generated_queue");
         boolean frankensteinTest = config.getBoolean("queue_tests_frankenstein");
         boolean interpolateTest = config.getBoolean("queue_tests_interpolation");
+        boolean populationTradingTest = config.getBoolean("queue_tests_population_trading", false);
         boolean iterateOverCorpus = config.getBoolean("iterate_over_corpus", false);
         boolean shouldGenerateSongTitle = config.getBoolean("generate_song_title");
         boolean shouldGenerateSong = config.getBoolean("generate_leadsheet");
@@ -157,6 +159,7 @@ public class Driver {
             LeadSheetDataSequence outputSequence = inputSequence.copy();
 
             outputSequence.clearMelody();
+
             if (interpolateTest) {
                 LeadSheetDataSequence additionalOutput = outputSequence.copy();
                 for (int i = 0; i < numInterpolationDivisions; i++) {
@@ -165,138 +168,198 @@ public class Driver {
             }
             LeadSheetDataSequence decoderInputSequence = outputSequence.copy();
 
-            LogTimer.startLog("Encoding data...");
-            //TradingTimer.initStart(); //start our trading timer to keep track our our generation versus realtime play
-            while (inputSequence.hasNext()) { //iterate through time steps in input data
-                //TradingTimer.waitForNextTimedInput();
-                autoencoder.encodeStep(inputSequence.retrieve()); //feed the resultant input vector into the network
-                if (advanceDecoding) { //if we are using advance decoding (we start decoding as soon as we can)
-                    if (autoencoder.canDecode()) { //if queue has enough data to decode from
-                        outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
-                        //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are
+            if (populationTradingTest) {
+
+                LeadSheetDataSequence humanTradingPartsSequence = inputSequence.copy();
+                LeadSheetDataSequence newOutputSequence = new LeadSheetDataSequence();
+                int tradingPartSize = 192;
+                int numTradingParts = 0;
+                int lastTradingPartSize = 0;
+                while (outputSequence.hasNonMelodyDataLeft()) {
+                    LeadSheetDataSequence currExtendedPart = new LeadSheetDataSequence();
+                    int i = 0;
+                    for (; i < tradingPartSize && outputSequence.hasNonMelodyDataLeft(); i++) {
+                        currExtendedPart.pushStep(outputSequence.pollBeats(), outputSequence.pollChords(), null);
                     }
+                    lastTradingPartSize = i;
+                    numTradingParts++;
+                    currExtendedPart.concat(currExtendedPart.copy());
+                    newOutputSequence.concat(currExtendedPart);
                 }
-            }
-            LogTimer.endLog();
+                outputSequence = newOutputSequence;
 
-            if (shouldWriteQueue) {
-                String queueFilePath = queueFolderPath + java.io.File.separator + inputFile.getName().replace(".ls", ".q");
-                FragmentedNeuralQueue currQueue = autoencoder.getQueue();
-                currQueue.writeToFile(queueFilePath);
-                LogTimer.log("Wrote queue " + inputFile.getName().replace(".ls", ".q") + " to file...");
-            }
-            if (shouldGenerateSong) {
-                if (interpolateTest) {
+                QueuePopulation population = new QueuePopulation();
+                FragmentedNeuralQueue firstRefQueue = new FragmentedNeuralQueue();
+                firstRefQueue.initFromFile(referenceQueuePath);
+                population.add(firstRefQueue);
 
-                    FragmentedNeuralQueue refQueue = new FragmentedNeuralQueue();
-                    refQueue.initFromFile(referenceQueuePath);
+                Random interpRand = new Random();
+                double interpRange = config.getDouble("trading_interp_range", 0.2);
+                double interpMin = config.getDouble("trading_interp_min", 0.3);
+                double populationHerd = config.getDouble("trading_population_herd_magnitude",0.1);
+                double maxMutationStrength = config.getDouble("trading_population_max_mutation",0.3);
+                double crossoverProbability = config.getDouble("trading_population_crossover_prob",0.2);
+                for (int i = 0; i < numTradingParts; i++) {
+                    int currTradingPartSize = (i == numTradingParts - 1) ? lastTradingPartSize : tradingPartSize;
+                    for (int j = 0; j < currTradingPartSize; j++) {
+                        autoencoder.encodeStep(inputSequence.retrieve());
+                    }
+                    FragmentedNeuralQueue generatedQueue = autoencoder.getQueue();
+                    FragmentedNeuralQueue modifiedQueue = generatedQueue.copy();
 
+                    modifiedQueue.basicInterpolate(population.sample(), (interpRand.nextDouble() * interpRange) + interpMin);
+                    
+                    autoencoder.setQueue(modifiedQueue);
+                    for(int j = 0; j < currTradingPartSize; j++)
+                    {
+                        outputSequence.pushStep(null, null, humanTradingPartsSequence.pollMelody());
+                    }
+                    
+                    for(int j = 0; j < currTradingPartSize; j++)
+                    {
+                        outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve()));
+                    }
+                    if(i != numTradingParts - 1)
+                    {
+                        population.herd(generatedQueue, populationHerd);
+                        population.add(generatedQueue);
+                        population.evolve(maxMutationStrength, crossoverProbability);
+                    }
+                    (new NetworkMeatPacker()).refresh(autoEncoderParamsPath, autoencoder, "initialstate");
+                }
+                LogTimer.log("Writing file...");
+
+                String outputFilename = outputFolderPath + java.io.File.separator + inputFile.getName().replace(".ls", "_TradingOutput.ls"); //we'll write our generated file with the same name plus "_Output"
+                LeadSheetIO.writeLeadSheet(outputSequence, outputFilename, songTitle);
+                System.out.println(outputFilename);
+
+            } else {
+                LogTimer.startLog("Encoding data...");
+                //TradingTimer.initStart(); //start our trading timer to keep track our our generation versus realtime play
+                while (inputSequence.hasNext()) { //iterate through time steps in input data
+                    //TradingTimer.waitForNextTimedInput();
+                    autoencoder.encodeStep(inputSequence.retrieve()); //feed the resultant input vector into the network
+                }
+                LogTimer.endLog();
+
+                if (shouldWriteQueue) {
+                    String queueFilePath = queueFolderPath + java.io.File.separator + inputFile.getName().replace(".ls", ".q");
                     FragmentedNeuralQueue currQueue = autoencoder.getQueue();
-                    //currQueue.writeToFile(queueFilePath);
+                    currQueue.writeToFile(queueFilePath);
+                    LogTimer.log("Wrote queue " + inputFile.getName().replace(".ls", ".q") + " to file...");
+                }
+                if (shouldGenerateSong) {
+                    if (interpolateTest) {
 
-                    autoencoder.setQueue(currQueue.copy());
+                        FragmentedNeuralQueue refQueue = new FragmentedNeuralQueue();
+                        refQueue.initFromFile(referenceQueuePath);
+
+                        FragmentedNeuralQueue currQueue = autoencoder.getQueue();
+                        //currQueue.writeToFile(queueFilePath);
+
+                        autoencoder.setQueue(currQueue.copy());
+                        while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
+                            outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
+                            //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
+                        }
+
+                        for (int i = 1; i <= numInterpolationDivisions; i++) {
+                            System.out.println("Starting interpolation " + ((1.0 / numInterpolationDivisions) * (i)));
+                            (new NetworkMeatPacker()).refresh(autoEncoderParamsPath, autoencoder, "initialstate");
+                            FragmentedNeuralQueue currCopy = currQueue.copy();
+                            currCopy.basicInterpolate(refQueue, (1.0 / numInterpolationDivisions) * (i));
+                            autoencoder.setQueue(currCopy);
+                            int timeStep = 0;
+                            while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
+                                System.out.println("interpolation " + i + " step " + ++timeStep);
+                                outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
+                                //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
+                            }
+                        }
+
+                    } else if (frankensteinTest) {
+                        LogTimer.startLog("Loading queues");
+                        File queueFolder = new File(queueFolderPath);
+                        int numComponents = config.getInt("frankenstein_num_components", 5);
+                        int numCombinations = config.getInt("frankenstein_num_combinations", 6);
+                        double interpolationMagnitude = config.getDouble("frankenstein_magnitude", 2.0);
+                        if (queueFolder.isDirectory()) {
+                            File[] queueFiles = queueFolder.listFiles(new FilenameFilter() {
+                                @Override
+                                public boolean accept(File dir, String name) {
+                                    return name.contains(".q");
+                                }
+                            });
+
+                            List<File> fileList = new ArrayList<>();
+                            for (File file : queueFiles) {
+                                fileList.add(file);
+                            }
+                            Collections.shuffle(fileList);
+                            int numSelectedFiles = (numComponents > queueFiles.length) ? queueFiles.length : numComponents;
+
+                            for (int i = 0; i < queueFiles.length - numSelectedFiles; i++) {
+                                fileList.remove(fileList.size() - 1);
+                            }
+                            List<FragmentedNeuralQueue> queuePopulation = new ArrayList<>(fileList.size());
+                            songTitle += " - a mix of ";
+                            for (File file : fileList) {
+                                FragmentedNeuralQueue newQueue = new FragmentedNeuralQueue();
+                                newQueue.initFromFile(file.getPath());
+                                queuePopulation.add(newQueue);
+                                songTitle += file.getName().replaceAll(".ls", "") + ", ";
+                            }
+                            LogTimer.endLog();
+
+                            LeadSheetDataSequence additionalOutput = outputSequence.copy();
+                            for (int i = 1; i < numCombinations; i++) {
+                                outputSequence.concat(additionalOutput.copy());
+                            }
+                            decoderInputSequence = outputSequence.copy();
+
+                            FragmentedNeuralQueue origQueue = autoencoder.getQueue();
+
+                            for (int i = 0; i < numCombinations; i++) {
+
+                                LogTimer.startLog("Performing queue interpolation...");
+                                AVector combinationStrengths = Vector.createLength(queuePopulation.size());
+                                Random vectorRand = new Random(i);
+                                for (int j = 0; j < combinationStrengths.length(); j++) {
+                                    combinationStrengths.set(j, vectorRand.nextDouble());
+                                }
+                                combinationStrengths.divide(combinationStrengths.elementSum());
+                                FragmentedNeuralQueue currQueue = origQueue.copy();
+                                for (int k = 0; k < combinationStrengths.length(); k++) {
+                                    currQueue.basicInterpolate(queuePopulation.get(k), combinationStrengths.get(k) * interpolationMagnitude);
+                                }
+                                LogTimer.endLog();
+                                autoencoder.setQueue(currQueue);
+                                LogTimer.startLog("Refreshing autoencoder state...");
+                                (new NetworkMeatPacker()).refresh(autoEncoderParamsPath, autoencoder, "initialstate");
+                                LogTimer.endLog();
+                                LogTimer.startLog("Decoding segment...");
+                                while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
+                                    outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
+                                    //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
+                                }
+                                LogTimer.endLog();
+                            }
+
+                        }
+                    }
+
                     while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
                         outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
                         //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
                     }
+                    LogTimer.log("Writing file...");
 
-                    for (int i = 1; i <= numInterpolationDivisions; i++) {
-                        System.out.println("Starting interpolation " + ((1.0 / numInterpolationDivisions) * (i)));
-                        (new NetworkMeatPacker()).refresh(autoEncoderParamsPath, autoencoder, "initialstate");
-                        FragmentedNeuralQueue currCopy = currQueue.copy();
-                        currCopy.basicInterpolate(refQueue, (1.0 / numInterpolationDivisions) * (i));
-                        autoencoder.setQueue(currCopy);
-                        int timeStep = 0;
-                        while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
-                            System.out.println("interpolation " + i + " step " + ++timeStep);
-                            outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
-                            //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
-                        }
-                    }
-
+                    String outputFilename = outputFolderPath + java.io.File.separator + inputFile.getName().replace(".ls", "_Output.ls"); //we'll write our generated file with the same name plus "_Output"
+                    LeadSheetIO.writeLeadSheet(outputSequence, outputFilename, songTitle);
+                    System.out.println(outputFilename);
+                } else {
+                    autoencoder.setQueue(new FragmentedNeuralQueue());
                 }
-                if (frankensteinTest) {
-                    LogTimer.startLog("Loading queues");
-                    File queueFolder = new File(queueFolderPath);
-                    int numComponents = config.getInt("frankenstein_num_components", 5);
-                    int numCombinations = config.getInt("frankenstein_num_combinations", 6);
-                    double interpolationMagnitude = config.getDouble("frankenstein_magnitude", 2.0);
-                    if (queueFolder.isDirectory()) {
-                        File[] queueFiles = queueFolder.listFiles(new FilenameFilter() {
-                            @Override
-                            public boolean accept(File dir, String name) {
-                                return name.contains(".q");
-                            }
-                        });
-
-                        List<File> fileList = new ArrayList<>();
-                        for (File file : queueFiles) {
-                            fileList.add(file);
-                        }
-                        Collections.shuffle(fileList);
-                        int numSelectedFiles = (numComponents > queueFiles.length) ? queueFiles.length : numComponents;
-
-                        for (int i = 0; i < queueFiles.length - numSelectedFiles; i++) {
-                            fileList.remove(fileList.size() - 1);
-                        }
-                        List<FragmentedNeuralQueue> queuePopulation = new ArrayList<>(fileList.size());
-                        songTitle += " - a mix of ";
-                        for (File file : fileList) {
-                            FragmentedNeuralQueue newQueue = new FragmentedNeuralQueue();
-                            newQueue.initFromFile(file.getPath());
-                            queuePopulation.add(newQueue);
-                            songTitle += file.getName().replaceAll(".ls", "") + ", ";
-                        }
-                        LogTimer.endLog();
-
-                        LeadSheetDataSequence additionalOutput = outputSequence.copy();
-                        for (int i = 1; i < numCombinations; i++) {
-                            outputSequence.concat(additionalOutput.copy());
-                        }
-                        decoderInputSequence = outputSequence.copy();
-
-                        FragmentedNeuralQueue origQueue = autoencoder.getQueue();
-
-                        for (int i = 0; i < numCombinations; i++) {
-                            
-                            LogTimer.startLog("Performing queue interpolation...");
-                            AVector combinationStrengths = Vector.createLength(queuePopulation.size());
-                            Random vectorRand = new Random(i);
-                            for (int j = 0; j < combinationStrengths.length(); j++) {
-                                combinationStrengths.set(j, vectorRand.nextDouble());
-                            }
-                            combinationStrengths.divide(combinationStrengths.elementSum());
-                            FragmentedNeuralQueue currQueue = origQueue.copy();
-                            for (int k = 0; k < combinationStrengths.length(); k++) {
-                                currQueue.basicInterpolate(queuePopulation.get(k), combinationStrengths.get(k) * interpolationMagnitude);
-                            }
-                            LogTimer.endLog();
-                            autoencoder.setQueue(currQueue);
-                            LogTimer.startLog("Refreshing autoencoder state...");
-                            (new NetworkMeatPacker()).refresh(autoEncoderParamsPath, autoencoder, "initialstate");
-                            LogTimer.endLog();
-                            LogTimer.startLog("Decoding segment...");
-                            while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
-                                outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
-                                //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
-                            }
-                            LogTimer.endLog();
-                        }
-
-                    }
-                }
-
-                while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
-                    outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
-                    //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
-                }
-                LogTimer.log("Writing file...");
-
-                String outputFilename = outputFolderPath + java.io.File.separator + inputFile.getName().replace(".ls", "_Output"); //we'll write our generated file with the same name plus "_Output"
-                LeadSheetIO.writeLeadSheet(outputSequence, outputFilename, songTitle);
-                System.out.println(outputFilename);
-            } else {
-                autoencoder.setQueue(new FragmentedNeuralQueue());
             }
         }
         LogTimer.log("Process finished"); //Done!

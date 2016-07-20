@@ -47,6 +47,11 @@ public class LeadSheetDataSequence implements DataSequence{
         return tempo;
     }
     
+    public boolean hasNonMelodyDataLeft()
+    {
+        return !chords.isEmpty() && !beats.isEmpty();
+    }
+    
     public void concat(LeadSheetDataSequence additional)
     {
         while(!additional.beats.isEmpty())

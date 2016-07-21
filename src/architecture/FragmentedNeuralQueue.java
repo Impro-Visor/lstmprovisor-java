@@ -212,6 +212,31 @@ public class FragmentedNeuralQueue {
         return featureGroups;
     }
     
+    public AMatrix getFeatureMatrix()
+    {
+        List<Integer> featureIndexes = getFeatureIndexes();
+        AVector[] features = new AVector[featureIndexes.size()];
+        
+        for(int i = 0; i < featureIndexes.size();i++)
+            features[i] = vectorList.get(featureIndexes.get(i));
+        return Matrix.create(features);
+    }
+    
+    public void initFromFeatureMatrix(AMatrix featureMatrix, int spacing)
+    {
+        strengthList = new LinkedList<>();
+        vectorList = new LinkedList<>();
+        int numFeatures = featureMatrix.rowCount();
+        int featureSize = featureMatrix.columnCount();
+        int currFeature = 0;
+        for(int i = 0; i < spacing * numFeatures; i++)
+        {
+            AVector newVector = (((i + 1) % spacing) == 0) ? featureMatrix.getRow(currFeature++) : Vector.createLength(featureSize);
+            vectorList.add(newVector);
+            strengthList.add((((i + 1) % spacing) == 0) ? 1.0 : 0.0);
+        }
+    }
+    
     public void printFeatureGroups()
     {
         for(List<Integer> group : findFeatureGroups()) {

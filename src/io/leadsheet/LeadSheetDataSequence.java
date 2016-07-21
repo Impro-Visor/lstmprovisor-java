@@ -27,6 +27,11 @@ public class LeadSheetDataSequence implements DataSequence{
     
     private int entrySize;
     
+    public int maxLength()
+    {
+        return Math.max(melody.size(), Math.max(beats.size(), chords.size()));
+    }
+    
     public LeadSheetDataSequence()
     {
         beats = new LinkedList<>();

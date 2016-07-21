@@ -22,11 +22,13 @@ import mikera.vectorz.Vector;
  */
 public class QueuePopulation {
     
-    List<FragmentedNeuralQueue> queues;
+    private List<FragmentedNeuralQueue> queues;
+    private int maxSize;
     
-    public QueuePopulation()
+    public QueuePopulation(int maxSize)
     {
         queues = new ArrayList<>();
+        this.maxSize = maxSize;
     }
     
     public void evolve(double maxMutationStrength, double crossoverProb)
@@ -57,7 +59,12 @@ public class QueuePopulation {
     
     public void add(FragmentedNeuralQueue newQueue)
     {
+        if(queues.size() >= maxSize && maxSize > 0)
+        {
+            queues.remove(0);
+        }
         queues.add(newQueue);
+        
     }
     
     public FragmentedNeuralQueue sample()

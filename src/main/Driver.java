@@ -18,7 +18,9 @@ import encoding.Group;
 import filters.GroupedSoftMaxSampler;
 import filters.Operations;
 import io.leadsheet.LeadSheetIO;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,8 +28,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import mikera.arrayz.INDArray;
+import mikera.matrixx.AMatrix;
+import mikera.matrixx.Matrix;
 import mikera.vectorz.AVector;
 import mikera.vectorz.Vector;
+import nickd4j.ReadWriteUtilities;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
@@ -63,6 +68,11 @@ public class Driver {
         String queueFolderPath = config.getString("queue_folder");
         String referenceQueuePath = config.getString("reference_queue", "nil");
         String inputCorpusFolder = config.getString("input_corpus_folder");
+        String featureMatrixPath = config.getString("feature_matrix_path");
+        String pcaFeatureMatrixPath = config.getString("pca_features_path");
+        boolean shouldGenerateFromPCAFeatures = config.getBoolean("generate_from_pca");
+        
+        boolean shouldGenerateQueueFeatureMatrix = config.getBoolean("should_generate_feature_matrix", false);
         boolean shouldWriteQueue = config.getBoolean("should_write_generated_queue");
         boolean frankensteinTest = config.getBoolean("queue_tests_frankenstein");
         boolean interpolateTest = config.getBoolean("queue_tests_interpolation");
@@ -123,6 +133,46 @@ public class Driver {
             }
         }
 
+        if(shouldGenerateQueueFeatureMatrix)
+        {
+            File[] queueFiles;
+            if(iterateOverCorpus)
+                queueFiles = new File(queueFolderPath).listFiles();
+            else
+                queueFiles = new File[]{new File(referenceQueuePath)};
+            List<AMatrix> queueMatrixes = new ArrayList<>();
+            for(File queueFile : queueFiles)
+            {
+                if(!queueFile.getName().contains(".DS_Store"))
+                {
+                    FragmentedNeuralQueue queue = new FragmentedNeuralQueue();
+                    queue.initFromFile(queueFile.getPath());
+                    queueMatrixes.add(queue.getFeatureMatrix());
+                }
+            }
+            System.out.println(queueMatrixes.get(0).rowCount());
+            AVector[] features = new AVector[queueMatrixes.size() * queueMatrixes.get(0).rowCount()];
+            int currFeature = 0;
+            for(AMatrix queueMatrix : queueMatrixes)
+            {
+                for(INDArray feature : queueMatrix.toSliceArray()) {
+                    features[currFeature++] = feature.toVector();
+                }
+            }
+            for(AVector feature : features)
+            {
+                System.out.println(feature);
+            }
+            AMatrix totalFeatureMatrix = Matrix.create(features);
+            
+            String writeData = ReadWriteUtilities.getNumpyCSVString(totalFeatureMatrix);
+            BufferedWriter writer = new BufferedWriter(new FileWriter(featureMatrixPath));
+            writer.write(writeData);
+            writer.close();
+            
+        }
+        
+        
         File[] songFiles;
         if (iterateOverCorpus) {
             songFiles = new File(inputCorpusFolder).listFiles();
@@ -132,7 +182,7 @@ public class Driver {
         for (File inputFile : songFiles) {
             (new NetworkMeatPacker()).refresh(autoEncoderParamsPath, autoencoder, "initialstate");
             String songTitle;
-            if (shouldGenerateSong) {
+            if (shouldGenerateSongTitle) {
                 Random rand = new Random();
                 AVector charOut = Vector.createLength(characterString.length());
                 GroupedSoftMaxSampler sampler = new GroupedSoftMaxSampler(new Group[]{new Group(0, characterString.length(), true)});
@@ -166,9 +216,41 @@ public class Driver {
                     outputSequence.concat(additionalOutput.copy());
                 }
             }
+            else if(shouldGenerateFromPCAFeatures)
+            {
+                int spacing = 24;
+                int numComponents = 8;
+                LeadSheetDataSequence newOutputSequence = new LeadSheetDataSequence();
+                while(newOutputSequence.maxLength() < spacing * numComponents)
+                {
+                    LeadSheetDataSequence currSegment = outputSequence.copy();
+                    while(currSegment.maxLength() > 0 && newOutputSequence.maxLength() < spacing * numComponents)
+                    {
+                        newOutputSequence.pushStep(currSegment.pollBeats(), currSegment.pollChords(), null);
+                    }
+                }
+                outputSequence = newOutputSequence;
+            }
             LeadSheetDataSequence decoderInputSequence = outputSequence.copy();
+            if(shouldGenerateFromPCAFeatures)
+            {
+                FragmentedNeuralQueue pcaQueue = new FragmentedNeuralQueue();
+                int spacing = 24;
+                AMatrix pcaFeatureMatrix = (AMatrix) ReadWriteUtilities.readNumpyCSVFile(pcaFeatureMatrixPath);
+                pcaQueue.initFromFeatureMatrix(pcaFeatureMatrix, 24);
+                autoencoder.setQueue(pcaQueue);
+                while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
+                        outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
+                        //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
+                }
+                LogTimer.log("Writing file...");
 
-            if (populationTradingTest) {
+                String outputFilename = outputFolderPath + java.io.File.separator + "pcaFeatureGen_Output.ls"; //we'll write our generated file with the same name plus "_Output"
+                LeadSheetIO.writeLeadSheet(outputSequence, outputFilename, "PCA Feature plug-in Etude");
+                System.out.println(outputFilename);
+            }
+            else if (populationTradingTest) {
+                LogTimer.log("Extending outputSequence...");
 
                 LeadSheetDataSequence humanTradingPartsSequence = inputSequence.copy();
                 LeadSheetDataSequence newOutputSequence = new LeadSheetDataSequence();
@@ -188,7 +270,8 @@ public class Driver {
                 }
                 outputSequence = newOutputSequence;
 
-                QueuePopulation population = new QueuePopulation();
+                LogTimer.log("Setting up population...");
+                QueuePopulation population = new QueuePopulation(100);
                 FragmentedNeuralQueue firstRefQueue = new FragmentedNeuralQueue();
                 firstRefQueue.initFromFile(referenceQueuePath);
                 population.add(firstRefQueue);
@@ -199,33 +282,47 @@ public class Driver {
                 double populationHerd = config.getDouble("trading_population_herd_magnitude",0.1);
                 double maxMutationStrength = config.getDouble("trading_population_max_mutation",0.3);
                 double crossoverProbability = config.getDouble("trading_population_crossover_prob",0.2);
+                
                 for (int i = 0; i < numTradingParts; i++) {
+                    LogTimer.startLog("Generating trading part...");
+                    LogTimer.startLog("Encoding input part");
                     int currTradingPartSize = (i == numTradingParts - 1) ? lastTradingPartSize : tradingPartSize;
                     for (int j = 0; j < currTradingPartSize; j++) {
                         autoencoder.encodeStep(inputSequence.retrieve());
                     }
+                    LogTimer.endLog();
+                    LogTimer.startLog("Modifying queue");
                     FragmentedNeuralQueue generatedQueue = autoencoder.getQueue();
                     FragmentedNeuralQueue modifiedQueue = generatedQueue.copy();
-
+                    
                     modifiedQueue.basicInterpolate(population.sample(), (interpRand.nextDouble() * interpRange) + interpMin);
                     
                     autoencoder.setQueue(modifiedQueue);
+                    LogTimer.endLog();
+                    LogTimer.startLog("Pushing human part");
                     for(int j = 0; j < currTradingPartSize; j++)
                     {
                         outputSequence.pushStep(null, null, humanTradingPartsSequence.pollMelody());
                     }
-                    
+                    LogTimer.endLog();
+                    LogTimer.startLog("Decoding generated part");
                     for(int j = 0; j < currTradingPartSize; j++)
                     {
                         outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve()));
                     }
+                    LogTimer.endLog();
+                    LogTimer.startLog("Performing population operations");
                     if(i != numTradingParts - 1)
                     {
                         population.herd(generatedQueue, populationHerd);
                         population.add(generatedQueue);
                         population.evolve(maxMutationStrength, crossoverProbability);
                     }
+                    LogTimer.endLog();
+                    LogTimer.startLog("Refreshing network");
                     (new NetworkMeatPacker()).refresh(autoEncoderParamsPath, autoencoder, "initialstate");
+                    LogTimer.endLog();
+                    LogTimer.endLog();
                 }
                 LogTimer.log("Writing file...");
 

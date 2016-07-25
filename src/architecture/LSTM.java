@@ -9,7 +9,6 @@ import filters.Operations;
 import mikera.matrixx.AMatrix;
 import mikera.vectorz.AVector;
 import mikera.arrayz.INDArray;
-//import org.nd4j.linalg.api.shape.
 
 /**
  * Class LSTMNode implements an LSTM neural network node as described by Hochreiter and Schmidhuber (and explaiend by colah's blog).

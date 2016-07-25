@@ -20,9 +20,11 @@ public interface NoteEncoder {
     
     public boolean hasSustain(AVector input);
     
+    public boolean isRest(AVector input);
+    
     public int decode(AVector input);
     
-    public default int getNoteLength(){
+    public default int getNoteLength() {
         int sum = 0;
         for(Group group : getGroups())
             sum += group.length();

@@ -14,7 +14,6 @@ import architecture.poex.PassthroughNoteEncoder;
  */
 public class EncodingParameters {
     
-    //must update
     public static final NoteEncoder noteEncoder = new PassthroughNoteEncoder();
     public static final ChordEncoder chordEncoder = new PassthroughChordEncoder();
 }

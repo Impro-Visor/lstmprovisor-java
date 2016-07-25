@@ -38,8 +38,6 @@ public class VectorzTest {
         System.out.println("Soft-maxed (m * v): \n" + softMaxxedV2);
         System.out.println("Soft-maxed (m * v) sum: \n" + softMaxxedV2.elementSum());
         
-        //v2.divide(0);
-        
         v = v.getTransposeCopy();
         System.out.println("v transposed: \n" + v);
         

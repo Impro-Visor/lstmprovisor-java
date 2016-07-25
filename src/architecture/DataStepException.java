@@ -6,12 +6,14 @@
 package architecture;
 
 /**
- *
+ * DataStepException marks that there is an error with the initialization or operation of a DataStep instance
  * @author cssummer16
  */
 public class DataStepException extends RuntimeException {
-    public DataStepException(String message)
+    private DataStep dataStep = new DataStep();
+    public DataStepException(String message, DataStep dataStep)
     {
         super(message);
+        this.dataStep = dataStep;
     }
 }

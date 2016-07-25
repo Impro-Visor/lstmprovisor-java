@@ -70,8 +70,10 @@ public class Driver {
         String inputCorpusFolder = config.getString("input_corpus_folder");
         String featureMatrixPath = config.getString("feature_matrix_path");
         String pcaFeatureMatrixPath = config.getString("pca_features_path");
-        boolean shouldGenerateFromPCAFeatures = config.getBoolean("generate_from_pca");
+        String featurePropertiesPath = config.getString("feature_properties_path");
+        String featureProperty = config.getString("feature_property");
         
+        boolean shouldGenerateFromPCAFeatures = config.getBoolean("generate_from_pca");
         boolean shouldGenerateQueueFeatureMatrix = config.getBoolean("should_generate_feature_matrix", false);
         boolean shouldWriteQueue = config.getBoolean("should_write_generated_queue");
         boolean frankensteinTest = config.getBoolean("queue_tests_frankenstein");
@@ -80,11 +82,13 @@ public class Driver {
         boolean iterateOverCorpus = config.getBoolean("iterate_over_corpus", false);
         boolean shouldGenerateSongTitle = config.getBoolean("generate_song_title");
         boolean shouldGenerateSong = config.getBoolean("generate_leadsheet");
+        boolean shouldGenerateFeatureProperties = config.getBoolean("generate_feature_properties");
+        
 
         LogTimer.initStartTime();   //start our logging timer to keep track of our execution time
         LogTimer.log("Creating name generator...");
 
-        //here is just silly code for generating name based on an LSTM lol $wag
+        //here is just silly code for generating name based on an LSTM
         LSTM lstm = new LSTM();
         FullyConnectedLayer fullLayer = new FullyConnectedLayer(Operations.None);
         Loadable titleNetLoader = new Loadable() {
@@ -133,18 +137,16 @@ public class Driver {
             }
         }
 
-        if(shouldGenerateQueueFeatureMatrix)
-        {
+        if (shouldGenerateQueueFeatureMatrix) {
             File[] queueFiles;
-            if(iterateOverCorpus)
+            if (iterateOverCorpus) {
                 queueFiles = new File(queueFolderPath).listFiles();
-            else
+            } else {
                 queueFiles = new File[]{new File(referenceQueuePath)};
+            }
             List<AMatrix> queueMatrixes = new ArrayList<>();
-            for(File queueFile : queueFiles)
-            {
-                if(!queueFile.getName().contains(".DS_Store"))
-                {
+            for (File queueFile : queueFiles) {
+                if (queueFile.getName().endsWith(".q")) {
                     FragmentedNeuralQueue queue = new FragmentedNeuralQueue();
                     queue.initFromFile(queueFile.getPath());
                     queueMatrixes.add(queue.getFeatureMatrix());
@@ -153,33 +155,40 @@ public class Driver {
             System.out.println(queueMatrixes.get(0).rowCount());
             AVector[] features = new AVector[queueMatrixes.size() * queueMatrixes.get(0).rowCount()];
             int currFeature = 0;
-            for(AMatrix queueMatrix : queueMatrixes)
-            {
-                for(INDArray feature : queueMatrix.toSliceArray()) {
+            for (AMatrix queueMatrix : queueMatrixes) {
+                for (INDArray feature : queueMatrix.toSliceArray()) {
                     features[currFeature++] = feature.toVector();
                 }
             }
-            for(AVector feature : features)
-            {
+            for (AVector feature : features) {
                 System.out.println(feature);
             }
             AMatrix totalFeatureMatrix = Matrix.create(features);
-            
+
             String writeData = ReadWriteUtilities.getNumpyCSVString(totalFeatureMatrix);
             BufferedWriter writer = new BufferedWriter(new FileWriter(featureMatrixPath));
             writer.write(writeData);
             writer.close();
-            
         }
-        
-        
+
         File[] songFiles;
         if (iterateOverCorpus) {
-            songFiles = new File(inputCorpusFolder).listFiles();
+            songFiles = new File(inputCorpusFolder).listFiles(new FilenameFilter() {
+                    public boolean accept(File dir, String name)
+                    {
+                        System.out.println(name);
+                        System.out.println(name.endsWith(".ls"));
+                        return name.endsWith(".ls");
+                    }
+                });
         } else {
             songFiles = new File[]{new File(inputSongPath)};
         }
+        int numFeaturesPerSong = 8;
+        AVector featurePropertyValues = Vector.createLength(songFiles.length * numFeaturesPerSong);
+        int featureIndex = 0;
         for (File inputFile : songFiles) {
+            System.out.println(inputFile.getName());
             (new NetworkMeatPacker()).refresh(autoEncoderParamsPath, autoencoder, "initialstate");
             String songTitle;
             if (shouldGenerateSongTitle) {
@@ -206,6 +215,9 @@ public class Driver {
             }
             LogTimer.log("Reading file...");
             LeadSheetDataSequence inputSequence = LeadSheetIO.readLeadSheet(inputFile);  //read our leadsheet to get a data vessel as retrieved in rbm-provisor
+            //System.out.println(inputFile.getName());
+            if(inputSequence.hasNext())
+                System.out.println("the input has some meat!");
             LeadSheetDataSequence outputSequence = inputSequence.copy();
 
             outputSequence.clearMelody();
@@ -215,41 +227,40 @@ public class Driver {
                 for (int i = 0; i < numInterpolationDivisions; i++) {
                     outputSequence.concat(additionalOutput.copy());
                 }
-            }
-            else if(shouldGenerateFromPCAFeatures)
-            {
+            } else if (shouldGenerateFromPCAFeatures) {
                 int spacing = 24;
-                int numComponents = 8;
+                int numComponents = 100;
                 LeadSheetDataSequence newOutputSequence = new LeadSheetDataSequence();
-                while(newOutputSequence.maxLength() < spacing * numComponents)
-                {
+                while (newOutputSequence.maxLength() < spacing * numComponents) {
                     LeadSheetDataSequence currSegment = outputSequence.copy();
-                    while(currSegment.maxLength() > 0 && newOutputSequence.maxLength() < spacing * numComponents)
-                    {
+                    while (currSegment.maxLength() > 0 && newOutputSequence.maxLength() < spacing * numComponents) {
                         newOutputSequence.pushStep(currSegment.pollBeats(), currSegment.pollChords(), null);
                     }
                 }
                 outputSequence = newOutputSequence;
             }
             LeadSheetDataSequence decoderInputSequence = outputSequence.copy();
-            if(shouldGenerateFromPCAFeatures)
-            {
+            if (shouldGenerateFromPCAFeatures) {
                 FragmentedNeuralQueue pcaQueue = new FragmentedNeuralQueue();
                 int spacing = 24;
                 AMatrix pcaFeatureMatrix = (AMatrix) ReadWriteUtilities.readNumpyCSVFile(pcaFeatureMatrixPath);
                 pcaQueue.initFromFeatureMatrix(pcaFeatureMatrix, 24);
                 autoencoder.setQueue(pcaQueue);
+                int i = 0;
                 while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
-                        outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
-                        //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
+                    outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
+                    //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are    
+                    if (++i == spacing) {
+                        i = 0;
+                        (new NetworkMeatPacker()).refresh(autoEncoderParamsPath, autoencoder, "initialstate");
+                    }
                 }
                 LogTimer.log("Writing file...");
 
                 String outputFilename = outputFolderPath + java.io.File.separator + "pcaFeatureGen_Output.ls"; //we'll write our generated file with the same name plus "_Output"
                 LeadSheetIO.writeLeadSheet(outputSequence, outputFilename, "PCA Feature plug-in Etude");
                 System.out.println(outputFilename);
-            }
-            else if (populationTradingTest) {
+            } else if (populationTradingTest) {
                 LogTimer.log("Extending outputSequence...");
 
                 LeadSheetDataSequence humanTradingPartsSequence = inputSequence.copy();
@@ -274,15 +285,14 @@ public class Driver {
                 QueuePopulation population = new QueuePopulation(100);
                 FragmentedNeuralQueue firstRefQueue = new FragmentedNeuralQueue();
                 firstRefQueue.initFromFile(referenceQueuePath);
-                population.add(firstRefQueue);
 
                 Random interpRand = new Random();
                 double interpRange = config.getDouble("trading_interp_range", 0.2);
                 double interpMin = config.getDouble("trading_interp_min", 0.3);
-                double populationHerd = config.getDouble("trading_population_herd_magnitude",0.1);
-                double maxMutationStrength = config.getDouble("trading_population_max_mutation",0.3);
-                double crossoverProbability = config.getDouble("trading_population_crossover_prob",0.2);
-                
+                double populationHerd = config.getDouble("trading_population_herd_magnitude", 0.1);
+                double maxMutationStrength = config.getDouble("trading_population_max_mutation", 0.3);
+                double crossoverProbability = config.getDouble("trading_population_crossover_prob", 0.2);
+
                 for (int i = 0; i < numTradingParts; i++) {
                     LogTimer.startLog("Generating trading part...");
                     LogTimer.startLog("Encoding input part");
@@ -294,27 +304,28 @@ public class Driver {
                     LogTimer.startLog("Modifying queue");
                     FragmentedNeuralQueue generatedQueue = autoencoder.getQueue();
                     FragmentedNeuralQueue modifiedQueue = generatedQueue.copy();
-                    
-                    modifiedQueue.basicInterpolate(population.sample(), (interpRand.nextDouble() * interpRange) + interpMin);
-                    
+
+                    if (i > 0) {
+                        modifiedQueue.basicInterpolate(population.sample(), (interpRand.nextDouble() * interpRange) + interpMin);
+                    }
+
                     autoencoder.setQueue(modifiedQueue);
                     LogTimer.endLog();
                     LogTimer.startLog("Pushing human part");
-                    for(int j = 0; j < currTradingPartSize; j++)
-                    {
+                    for (int j = 0; j < currTradingPartSize; j++) {
                         outputSequence.pushStep(null, null, humanTradingPartsSequence.pollMelody());
                     }
                     LogTimer.endLog();
                     LogTimer.startLog("Decoding generated part");
-                    for(int j = 0; j < currTradingPartSize; j++)
-                    {
+                    for (int j = 0; j < currTradingPartSize; j++) {
                         outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve()));
                     }
                     LogTimer.endLog();
                     LogTimer.startLog("Performing population operations");
-                    if(i != numTradingParts - 1)
-                    {
-                        population.herd(generatedQueue, populationHerd);
+                    if (i != numTradingParts - 1) {
+                        if (i > 0) {
+                            population.herd(generatedQueue, populationHerd);
+                        }
                         population.add(generatedQueue);
                         population.evolve(maxMutationStrength, crossoverProbability);
                     }
@@ -332,9 +343,7 @@ public class Driver {
 
             } else {
                 LogTimer.startLog("Encoding data...");
-                //TradingTimer.initStart(); //start our trading timer to keep track our our generation versus realtime play
                 while (inputSequence.hasNext()) { //iterate through time steps in input data
-                    //TradingTimer.waitForNextTimedInput();
                     autoencoder.encodeStep(inputSequence.retrieve()); //feed the resultant input vector into the network
                 }
                 LogTimer.endLog();
@@ -352,12 +361,10 @@ public class Driver {
                         refQueue.initFromFile(referenceQueuePath);
 
                         FragmentedNeuralQueue currQueue = autoencoder.getQueue();
-                        //currQueue.writeToFile(queueFilePath);
 
                         autoencoder.setQueue(currQueue.copy());
                         while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
-                            outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
-                            //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
+                            outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder     
                         }
 
                         for (int i = 1; i <= numInterpolationDivisions; i++) {
@@ -369,8 +376,7 @@ public class Driver {
                             int timeStep = 0;
                             while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
                                 System.out.println("interpolation " + i + " step " + ++timeStep);
-                                outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
-                                //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
+                                outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder      
                             }
                         }
 
@@ -436,19 +442,83 @@ public class Driver {
                                 LogTimer.endLog();
                                 LogTimer.startLog("Decoding segment...");
                                 while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
-                                    outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
-                                    //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
+                                    outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder     
                                 }
                                 LogTimer.endLog();
                             }
-
                         }
                     }
 
                     while (autoencoder.hasDataStepsLeft()) { //we are done encoding all time steps, so just finish decoding!{
-                        outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder
-                        //TradingTimer.logTimestep(); //log our time to TradingTimer so we can know how far ahead of realtime we are       
+                        //System.out.println("push from decode");
+                        outputSequence.pushStep(null, null, autoencoder.decodeStep(decoderInputSequence.retrieve())); //take sampled data for a timestep from autoencoder    
                     }
+
+                    if (shouldGenerateFeatureProperties) {
+                        
+                        LeadSheetDataSequence copySequence = outputSequence.copy();
+                        int spacing = 24;
+                        System.out.println("Generating feature property values for song");
+                        switch (featureProperty) {
+                            case "rest":
+                                
+                                boolean wasLastRest = false;
+                                for(int j = 0; j < numFeaturesPerSong; j++)
+                                {
+                                    //System.out.println(j);
+                                    int restStepCount = 0;
+                                    for (int i = 0; i < spacing; i++) {
+                                        //System.out.println(i);
+                                        AVector polledMelodyStep = copySequence.pollMelody();
+                                        //System.out.println(polledMelodyStep);
+                                        if(polledMelodyStep.get(0) == -1.0) {
+                                            wasLastRest = true;
+                                            restStepCount++;
+                                        }
+                                        else if(polledMelodyStep.get(0) == -2.0 && wasLastRest)
+                                           restStepCount++;
+                                        else
+                                            wasLastRest = false;
+                                    }
+                                    featurePropertyValues.set(featureIndex++, ((double) restStepCount) / ((double) spacing));
+                                }
+                                break;
+                            case "sustain":
+                                
+                                for(int j = 0 ; j < numFeaturesPerSong; j++)
+                                {
+                                    int sustainStepCount = 0;
+                                    for (int i = 0; i < spacing; i++) {
+                                        AVector polledMelodyStep = copySequence.pollMelody();
+                                        if(polledMelodyStep.get(0) == -2.0)
+                                            sustainStepCount++;
+                                    }
+                                    featurePropertyValues.set(featureIndex++, ((double) sustainStepCount) / ((double) spacing));
+                                }
+                                break;
+                            case "articulate":
+
+                                
+                                for (int j = 0; j < numFeaturesPerSong; j++) {
+                                    //System.out.println(j);
+                                    int articulateStepCount = 0;
+                                    for (int i = 0; i < spacing; i++) {
+                                        //System.out.println(i);
+                                        AVector polledMelodyStep = copySequence.pollMelody();
+                                        //System.out.println(polledMelodyStep);
+                                        if (polledMelodyStep.get(0) >= 0.0)
+                                            articulateStepCount++;
+                                        
+                                    }
+                                    featurePropertyValues.set(featureIndex++, ((double) articulateStepCount) / ((double) spacing));
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+
+                    }
+
                     LogTimer.log("Writing file...");
 
                     String outputFilename = outputFolderPath + java.io.File.separator + inputFile.getName().replace(".ls", "_Output.ls"); //we'll write our generated file with the same name plus "_Output"
@@ -458,6 +528,14 @@ public class Driver {
                     autoencoder.setQueue(new FragmentedNeuralQueue());
                 }
             }
+        }
+        
+        if(shouldGenerateFeatureProperties) {
+        //write generated feature_properties
+        System.out.println(featurePropertyValues.length());
+        BufferedWriter writer = new BufferedWriter(new FileWriter(featurePropertiesPath + "_" + featureProperty + ".v"));
+        writer.write(ReadWriteUtilities.getNumpyCSVString(featurePropertyValues));
+        writer.close();
         }
         LogTimer.log("Process finished"); //Done!
 

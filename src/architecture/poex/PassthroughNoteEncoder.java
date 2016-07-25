@@ -32,6 +32,11 @@ public class PassthroughNoteEncoder implements NoteEncoder {
     public boolean hasSustain(AVector input) {
         return this.decode(input) == SUSTAIN_KEY;
     }
+    
+    public boolean isRest(AVector input)
+    {
+        throw new UnsupportedOperationException("PassthroughNoteEncoder does not have set rest index at this level");
+    }
 
     @Override
     public int decode(AVector input) {

@@ -12,13 +12,8 @@ import java.io.FilenameFilter;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import mikera.arrayz.INDArray;
 
 /**
  *

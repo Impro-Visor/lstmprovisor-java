@@ -4,225 +4,203 @@
  * and open the template in the editor.
  */
 package encoding;
+
 import java.util.Map.Entry;
 
 import mikera.vectorz.AVector;
 import mikera.vectorz.Vector;
 
 /**
- * Class ChordEncoder describes encoding and decoding procedures from chord names to bit vectors and vice-versa
+ * Class ChordEncoder describes encoding and decoding procedures from chord
+ * names to bit vectors and vice-versa
+ *
  * @author Nicholas Weintraut
  */
 public class ChordEncoder {
-    
-    public ChordEncoder(){}
-    
-    public AVector encode(String root, String type, String bass)
-    {
+
+    public ChordEncoder() {
+    }
+
+    public AVector encode(String root, String type, String bass) {
         AVector chordData = CHORD_TYPES.getValue(type);
-        //System.out.println();
-        //for(int i = 0; i < chordData.length(); i++)
-        //    System.out.print(chordData.getDouble(i) + " ");
-        //System.out.println();
-        //System.out.println(CHORD_TYPES.getKey(chordData));
-        if(chordData == null)
+        if (chordData == null) {
             return null;
-        else
-        {
+        } else {
             AVector transposedData = transposeChordData(chordData.clone(), (int) DISTANCES_FROM_C.getValue(root).intValue());
             transposedData.set((int) DISTANCES_FROM_C.getValue(bass).intValue(), 1);
             return transposedData;
         }
     }
-    
+
     public String decode(AVector chordData) {
-        
         String type = null;
         boolean foundC = false;
         double transposition = 0;
-        while(!foundC && transposition < 12) {
-            //for(int i = 0; i < chordData.length(); i++)
-            //        System.out.print(chordData.getDouble(i) + " ");
-            //System.out.println("<- transposition " +  transposition);
-            for(Entry<String, AVector> entry : CHORD_TYPES.entrySet())
-            {
-                if(chordData.equals(entry.getValue()))
+        while (!foundC && transposition < 12) {
+            for (Entry<String, AVector> entry : CHORD_TYPES.entrySet()) {
+                if (chordData.equals(entry.getValue())) {
                     type = entry.getKey();
+                }
             }
-            //type = CHORD_TYPES.getKey(chordData);
-            if(type != null) {
+            if (type != null) {
                 foundC = true;
-            }
-            else {
+            } else {
                 chordData = transposeChordData(chordData, -1);
                 transposition++;
             }
         }
-        if(transposition == 12)
-        {
+        if (transposition == 12) {
             System.out.println("Chord not found! (Might be a slash chord, which are not implemented for decode.) Substituting NC");
             return "NC";
         }
-        if(("NC").equals(type))
+        if (("NC").equals(type)) {
             return "NC";
-        else
+        } else {
             return DISTANCES_FROM_C.getKey(transposition) + type;
+        }
     }
-    
-    public AVector transposeChordData(AVector chordData, int distance)
-    {
-        //we check if distance is zero and simply return for simplicity, but also because Nd4j has a bug where passing (length, length) gives an AVector of size 1
-        //also Nd4j concat, when given an AVector of size 1 and another AVector, returns a two dimensional array with only two ELEMENTS...no matter the size of the second array
-        //yay nd4j $wag
-        if(distance == 0)
+
+    public AVector transposeChordData(AVector chordData, int distance) {
+        if (distance == 0) {
             return chordData;
-        else
-        {
+        } else {
             AVector part1;
             AVector part2;
-            if(distance > 0)
-            {
+            if (distance > 0) {
                 part1 = chordData.subVector(chordData.length() - (distance % chordData.length()), distance);
                 part2 = chordData.subVector(0, chordData.length() - distance);
-            }
-            else
-            {
+            } else {
                 part1 = chordData.subVector((-1 * distance) % chordData.length(), chordData.length() + distance);
-                part2 = chordData.subVector(0, (-1 * distance));          
+                part2 = chordData.subVector(0, (-1 * distance));
             }
-            //System.out.println(part1);
-            //System.out.println(part2);
             AVector concatenated = part1.join(part2).dense();
-            /*System.out.println();
-            for(int i = 0; i < concatenated.length(); i++)
-                System.out.print(concatenated.getDouble(i) + " ");
-            System.out.println();*/
             return concatenated;
         }
     }
-    
-    public final static AVector NO_CHORD         = Vector.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    public final static AVector C_MAJOR          = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0);
-    public final static AVector C_MAJOR_7        = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1);
-    public final static AVector C_MINOR_7        = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C_DOM_7          = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C_MINOR_9        = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0);
-    public final static AVector C_13             = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0);
+
+    public final static AVector NO_CHORD = Vector.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public final static AVector C_MAJOR = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector C_MAJOR_7 = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector C_MINOR_7 = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_DOM_7 = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_MINOR_9 = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector C_13 = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0);
     public final static AVector C_MINOR_7_FLAT_5 = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0);
-    public final static AVector C_DOM_7_SHARP_9  = Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C_DOM_7_FLAT_9   = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C_DIM_7          = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0);
-    public final static AVector C_9              = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C_MAJOR_9        = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector C_DOM_7_SHARP_9 = Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_DOM_7_FLAT_9 = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_DIM_7 = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0);
+    public final static AVector C_9 = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C_MAJOR_9 = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1);
     public final static AVector C_DOM_7_SHARP_11 = Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C_MAJOR_7_SHARP_11= Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1);
-    public final static AVector C_6              = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0);
-    public final static AVector C_7_ALT          = Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector NC              = Vector.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    public final static AVector C		= Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0);
-    public final static AVector CM		= Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0);
-    public final static AVector Cm_sharp_5	= Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
-    public final static AVector Cm_plus_        = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
-    public final static AVector Cm		= Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0);
-    public final static AVector Cm11_sharp_5	= Vector.of(1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0);
-    public final static AVector Cm11		= Vector.of(1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0);
-    public final static AVector Cm11b5          = Vector.of(1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0);
-    public final static AVector Cm13            = Vector.of(1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0);
-    public final static AVector Cm6             = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0);
-    public final static AVector Cm69            = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0);
-    public final static AVector Cm7_sharp_5	= Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector Cm7             = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector Cm7b5           = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0);
-    public final static AVector Ch7              = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0);
-    public final static AVector Cm9_sharp_5	= Vector.of(1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector Cm9             = Vector.of(1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0);
-    public final static AVector Cm9b5           = Vector.of(1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0);
-    public final static AVector CmM7            = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1);
-    public final static AVector CmM7b6          = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1);
-    public final static AVector CmM9            = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1);
-    public final static AVector Cmadd9          = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0);
-    public final static AVector Cmb6            = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
-    public final static AVector Cmb6M7          = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1);
-    public final static AVector Cmb6b9          = Vector.of(1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
-    public final static AVector CM_sharp_5	= Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
-    public final static AVector C_plus_         = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
-    public final static AVector Caug            = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
-    public final static AVector C_plus_7        = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector CM_sharp_5add9	= Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0);
-    public final static AVector CM7_sharp_5	= Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1);
-    public final static AVector CM7_plus_	= Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1);
-    public final static AVector CM9_sharp_5	= Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1);
-    public final static AVector C_plus_add9	= Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0);
-    public final static AVector C7              = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C7_sharp_5	= Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector C7_plus_        = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector Caug7           = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector C7aug           = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector C7_sharp_5_sharp_9	= Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector C7alt           = Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector C7b13           = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0);
-    public final static AVector C7b5_sharp_9	= Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector C7b5            = Vector.of(1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0);
-    public final static AVector C7b5b13         = Vector.of(1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
-    public final static AVector C7b5b9          = Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0);
-    public final static AVector C7b5b9b13	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
-    public final static AVector C7b6            = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0);
-    public final static AVector C7b9_sharp_11	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0);
-    public final static AVector C7b9_sharp_11b13	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
-    public final static AVector C7b9            = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C7b9b13_sharp_11	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
-    public final static AVector C7b9b13         = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0);
-    public final static AVector C7no5           = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0);
-    public final static AVector C7_sharp_11	= Vector.of(1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0);
-    public final static AVector C7_sharp_11b13	= Vector.of(1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
-    public final static AVector C7_sharp_5b9_sharp_11	= Vector.of(1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0);
-    public final static AVector C7_sharp_5b9            = Vector.of(1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector C7_sharp_9_sharp_11	= Vector.of(1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0);
-    public final static AVector C7_sharp_9_sharp_11b13	= Vector.of(1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0);
-    public final static AVector C7_sharp_9	= Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C7_sharp_9b13	= Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0);
-    public final static AVector C9              = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0);
-    public final static AVector C9_sharp_5	= Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector C9_plus_        = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0);
-    public final static AVector C9_sharp_11	= Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0);
-    public final static AVector C9_sharp_11b13	= Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0);
-    public final static AVector C9_sharp_5_sharp_11	= Vector.of(1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0);
-    public final static AVector C9b13           = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0);
-    public final static AVector C9b5            = Vector.of(1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0);
-    public final static AVector C9b5b13         = Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0);
-    public final static AVector C9no5           = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0);
-    public final static AVector C13_sharp_11	= Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0);
-    public final static AVector C13_sharp_9_sharp_11	= Vector.of(1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0);
-    public final static AVector C13_sharp_9	= Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0);
-    public final static AVector C13             = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0);
-    public final static AVector C13b5           = Vector.of(1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0);
-    public final static AVector C13b9_sharp_11	= Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0);
-    public final static AVector C13b9           = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0);
-    public final static AVector CMsus2          = Vector.of(1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0);
-    public final static AVector CMsus4          = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
-    public final static AVector Csus2           = Vector.of(1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0);
-    public final static AVector Csus4           = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
-    public final static AVector Csusb9          = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
-    public final static AVector C7b9b13sus4	= Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0);
-    public final static AVector C7b9sus         = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
-    public final static AVector C7b9sus4        = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
-    public final static AVector C7sus           = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
-    public final static AVector C7sus4          = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
-    public final static AVector C7sus4b9        = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
-    public final static AVector C7sus4b9b13	= Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0);
-    public final static AVector C7susb9         = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
-    public final static AVector C9sus4          = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0);
-    public final static AVector C9sus           = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0);
-    public final static AVector C11             = Vector.of(1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0);
-    public final static AVector C13sus          = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0);
-    public final static AVector C13sus4         = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0);
-    public final static AVector CBlues          = Vector.of(1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0);
-    public final static AVector CBass           = Vector.of(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    public final static AVector Co              = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0);
-    public final static AVector CM6             = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0);
-    public final static AVector CM69            = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0);
-    
+    public final static AVector C_MAJOR_7_SHARP_11 = Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector C_6 = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0);
+    public final static AVector C_7_ALT = Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector NC = Vector.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public final static AVector C = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector CM = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector Cm_sharp_5 = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector Cm_plus_ = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector Cm = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector Cm11_sharp_5 = Vector.of(1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0);
+    public final static AVector Cm11 = Vector.of(1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector Cm11b5 = Vector.of(1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0);
+    public final static AVector Cm13 = Vector.of(1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0);
+    public final static AVector Cm6 = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0);
+    public final static AVector Cm69 = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0);
+    public final static AVector Cm7_sharp_5 = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector Cm7 = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector Cm7b5 = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector Ch7 = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector Cm9_sharp_5 = Vector.of(1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector Cm9 = Vector.of(1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0);
+    public final static AVector Cm9b5 = Vector.of(1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector CmM7 = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector CmM7b6 = Vector.of(1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1);
+    public final static AVector CmM9 = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1);
+    public final static AVector Cmadd9 = Vector.of(1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector Cmb6 = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector Cmb6M7 = Vector.of(1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1);
+    public final static AVector Cmb6b9 = Vector.of(1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector CM_sharp_5 = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector C_plus_ = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector Caug = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector C_plus_7 = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector CM_sharp_5add9 = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector CM7_sharp_5 = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1);
+    public final static AVector CM7_plus_ = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1);
+    public final static AVector CM9_sharp_5 = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1);
+    public final static AVector C_plus_add9 = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0);
+    public final static AVector C7 = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7_sharp_5 = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7_plus_ = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector Caug7 = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7aug = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7_sharp_5_sharp_9 = Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7alt = Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7b13 = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7b5_sharp_9 = Vector.of(1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7b5 = Vector.of(1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector C7b5b13 = Vector.of(1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7b5b9 = Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C7b5b9b13 = Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7b6 = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7b9_sharp_11 = Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C7b9_sharp_11b13 = Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7b9 = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7b9b13_sharp_11 = Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7b9b13 = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7no5 = Vector.of(1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0);
+    public final static AVector C7_sharp_11 = Vector.of(1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C7_sharp_11b13 = Vector.of(1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7_sharp_5b9_sharp_11 = Vector.of(1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0);
+    public final static AVector C7_sharp_5b9 = Vector.of(1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C7_sharp_9_sharp_11 = Vector.of(1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C7_sharp_9_sharp_11b13 = Vector.of(1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C7_sharp_9 = Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7_sharp_9b13 = Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C9 = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+    public final static AVector C9_sharp_5 = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C9_plus_ = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0);
+    public final static AVector C9_sharp_11 = Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0);
+    public final static AVector C9_sharp_11b13 = Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C9_sharp_5_sharp_11 = Vector.of(1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0);
+    public final static AVector C9b13 = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0);
+    public final static AVector C9b5 = Vector.of(1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0);
+    public final static AVector C9b5b13 = Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0);
+    public final static AVector C9no5 = Vector.of(1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0);
+    public final static AVector C13_sharp_11 = Vector.of(1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0);
+    public final static AVector C13_sharp_9_sharp_11 = Vector.of(1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0);
+    public final static AVector C13_sharp_9 = Vector.of(1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0);
+    public final static AVector C13 = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0);
+    public final static AVector C13b5 = Vector.of(1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0);
+    public final static AVector C13b9_sharp_11 = Vector.of(1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0);
+    public final static AVector C13b9 = Vector.of(1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0);
+    public final static AVector CMsus2 = Vector.of(1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector CMsus4 = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
+    public final static AVector Csus2 = Vector.of(1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0);
+    public final static AVector Csus4 = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
+    public final static AVector Csusb9 = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
+    public final static AVector C7b9b13sus4 = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7b9sus = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0);
+    public final static AVector C7b9sus4 = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7sus = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7sus4 = Vector.of(1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7sus4b9 = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C7sus4b9b13 = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0);
+    public final static AVector C7susb9 = Vector.of(1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C9sus4 = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C9sus = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C11 = Vector.of(1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0);
+    public final static AVector C13sus = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0);
+    public final static AVector C13sus4 = Vector.of(1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0);
+    public final static AVector CBlues = Vector.of(1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0);
+    public final static AVector CBass = Vector.of(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public final static AVector Co = Vector.of(1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0);
+    public final static AVector CM6 = Vector.of(1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0);
+    public final static AVector CM69 = Vector.of(1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0);
+
     public final static BidirectionalHashMap<String, AVector> CHORD_TYPES = new BidirectionalHashMap<>();
+
     static {
         CHORD_TYPES.put("NC", NO_CHORD);
         CHORD_TYPES.put("", C_MAJOR);
@@ -345,8 +323,9 @@ public class ChordEncoder {
         CHORD_TYPES.put("Blues", CBlues);
         CHORD_TYPES.put("Bass", CBass);
     }
-    
+
     public final static BidirectionalHashMap<String, Double> DISTANCES_FROM_C = new BidirectionalHashMap<>();
+
     static {
         DISTANCES_FROM_C.put("C", 0.0);
         DISTANCES_FROM_C.put("C#", 1.0);

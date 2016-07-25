@@ -140,6 +140,7 @@ public class LeadSheetDataSequence implements DataSequence{
     
     @Override
     public boolean hasNext() {
+            
         return !melody.isEmpty() && !beats.isEmpty() && !chords.isEmpty();
     }
 }

@@ -13,6 +13,7 @@ import architecture.CompressingAutoEncoder;
 import architecture.FullyConnectedLayer;
 import architecture.LSTM;
 import architecture.LeadsheetAutoencoderInputManager;
+import architecture.LoadTreeNode;
 import architecture.Loadable;
 import architecture.NameGenerator;
 import architecture.poex.ProductCompressingAutoencoder;
@@ -36,12 +37,19 @@ public class GenerativeProductDriver {
     public static void main(String[] args) {
         //here is just silly code for generating name based on an LSTM lol $wag
         NameGenerator titleNet = new NameGenerator();
-        String[] unmatchedPathsNameGenerator = (new ConnectomeLoader()).load(args[3], titleNet);
+        String[][] unmatchedPathsNameGenerator = (new ConnectomeLoader()).load(args[3], titleNet);
 
-        String[] notFoundNameGen = unmatchedPathsNameGenerator;
+        String[] notFoundNameGen = unmatchedPathsNameGenerator[0];
         if (notFoundNameGen.length > 0) {
             System.err.println(notFoundNameGen.length + " files were not able to be matched to the name generator network!");
             for (String fileName : notFoundNameGen) {
+                System.err.println("\t" + fileName);
+            }
+        }
+        String[] missingNameGen = unmatchedPathsNameGenerator[1];
+        if (missingNameGen.length > 0) {
+            System.err.println(missingNameGen.length + " files needed for loading the name generator were missing from the connectome file!");
+            for (String fileName : missingNameGen) {
                 System.err.println("\t" + fileName);
             }
         }
@@ -69,13 +77,24 @@ public class GenerativeProductDriver {
             
             //"pack" the network from weights and biases file directory
             LogTimer.log("Packing melody generator from files");
-            String[] unmatchedPathsMelodyGenerator = (new ConnectomeLoader()).load(args[2], genmodel);
+            String[][] unmatchedPathsMelodyGenerator = (new ConnectomeLoader()).load(args[2], genmodel);
             
-            String[] notFoundMelodyGen = unmatchedPathsMelodyGenerator;
+            String[] notFoundMelodyGen = unmatchedPathsMelodyGenerator[0];
             if(notFoundMelodyGen.length > 0)
             {
                 System.err.println(notFoundMelodyGen.length + " files were not able to be matched to the melody generator network!");
                 for(String fileName : notFoundMelodyGen)
+                {
+                    System.err.println("\t" + fileName);
+                }
+            }
+            
+            
+            String[] missingMelodyGen = unmatchedPathsMelodyGenerator[1];
+            if(missingMelodyGen.length > 0)
+            {
+                System.err.println(missingMelodyGen.length + " files for loading the melody generator network were missing from the connectome file!");
+                for(String fileName : missingMelodyGen)
                 {
                     System.err.println("\t" + fileName);
                 }

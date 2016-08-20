@@ -7,9 +7,14 @@ package architecture.poex;
 
 import architecture.DataStep;
 import architecture.FragmentedNeuralQueue;
+import architecture.LoadTreeNode;
 import architecture.Loadable;
 import filters.Operations;
 import io.leadsheet.LeadsheetDataSequence;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Random;
 import mikera.arrayz.INDArray;
 import mikera.vectorz.AVector;
@@ -21,6 +26,8 @@ import nickd4j.NNUtilities;
  * @author cssummer16
  */
 public class ProductCompressingAutoencoder implements Loadable {
+    
+    private LoadTreeNode loadNode;
     private int low_bound;
     private int high_bound;
     private boolean variational;
@@ -43,7 +50,9 @@ public class ProductCompressingAutoencoder implements Loadable {
     
     private Random rand;
     
-    public ProductCompressingAutoEncoder(int fixedFeatureLength, int beatVectorSize, int lowbound, int highbound, boolean variational){
+    private BufferedWriter firstEncodeStepWriter;
+    
+    public ProductCompressingAutoencoder(int fixedFeatureLength, int beatVectorSize, int lowbound, int highbound, boolean variational){
         this.fixedFeatureLength = fixedFeatureLength;
         this.low_bound = lowbound;
         this.high_bound = highbound;
@@ -111,9 +120,23 @@ public class ProductCompressingAutoencoder implements Loadable {
     
     public void encodeStep(DataStep currStep) {
        
+        boolean isFirstEncodeStep = false;
+        //initialize the file writer we'll use to output the results of each operation in a step to a file
+        //only used for debugging  the network, compare the generated file to a file generated from the same network code in a working project.
+       try {
+       if(firstEncodeStepWriter == null){
+                isFirstEncodeStep = true;
+                firstEncodeStepWriter = new BufferedWriter(new FileWriter(new File("autoEncoderOutput.txt")));
+       }
         AVector chord = currStep.get("chord");
+        if(isFirstEncodeStep)
+            firstEncodeStepWriter.write("Chord input: " + chord.toString() + "\n");
         AVector beat = currStep.get("beat");
+        if(isFirstEncodeStep)
+            firstEncodeStepWriter.write("Beat input: " + beat.toString() + "\n");
         AVector melody = currStep.get("melody");
+        if(isFirstEncodeStep)
+            firstEncodeStepWriter.write("Melody input: " + melody.toString() + "\n");
         int chord_root = (int) chord.get(0);
         AVector chord_type = chord.subVector(1, 12);
         int midinote = (int) melody.get(0);
@@ -123,11 +146,17 @@ public class ProductCompressingAutoencoder implements Loadable {
         for(int i=0; i<this.num_experts; i++) {
             RelativeNoteEncoding enc = this.encoder_expert_encodings[i];
             AVector encval = enc.encode(midinote, chord_root);
+            if(isFirstEncodeStep)
+                firstEncodeStepWriter.write("encVal expert " + i + ": " + encval.toString() + "\n");
             int relpos = enc.get_relative_position(chord_root);
             this.cur_output_parts[i].provide(encval);
             
             AVector full_encoder_input = RelativeInputPart.combine(this.encoder_inputs[i], relpos, chord_root, chord_type);
+            if(isFirstEncodeStep)
+                firstEncodeStepWriter.write("full encoder input expert " + i + ": " + full_encoder_input.toString() + "\n");
             AVector activations = this.encoder_experts[i].process(full_encoder_input);
+            if(isFirstEncodeStep)
+                firstEncodeStepWriter.write("activation result expert " + i + ": " + activations.toString() + "\n");
             
             if(accum_activations == null)
                 accum_activations = activations;
@@ -137,7 +166,7 @@ public class ProductCompressingAutoencoder implements Loadable {
         Operations processOp = variational ? Operations.NormalSample : Operations.Sigmoid;
         if(fixedFeatureLength > 0)
         {
-             AVector featureVec = processOp.operate(accum_activations);
+            AVector featureVec = processOp.operate(accum_activations);
             if((currTimeStep+1) % fixedFeatureLength == 0)
             {
                 this.queue.enqueueStep(featureVec, 1.0);
@@ -160,6 +189,13 @@ public class ProductCompressingAutoencoder implements Loadable {
         }
         else
             throw new RuntimeException("Set feature size is negative!");
+        if(isFirstEncodeStep){
+            firstEncodeStepWriter.close();
+            isFirstEncodeStep = false;
+        }
+        } catch (IOException e){
+               e.printStackTrace();
+        }
     }
     
     public void readInQueue(String inFilePath)
@@ -242,27 +278,45 @@ public class ProductCompressingAutoencoder implements Loadable {
         }
         return Vector.of(midival);
     }
-    
+
     @Override
-    public boolean load(INDArray data, String loadPath) {
-        // Expected format: (enc|dec)_#_<expert params>
-        // i.e. enc_1_full_w
-        String car = pathCar(loadPath);
-        String cdr = pathCdr(loadPath);
-        String car2 = pathCar(cdr);
-        String cdr2 = pathCdr(cdr);
-        Expert[] exps;
-        switch (car) {
-            case "enc":
-                exps = this.encoder_experts;
-                break;
-            case "dec":
-                exps = this.decoder_experts;
-                break;
-            default:
-                return false;
+    public LoadTreeNode constructLoadTree() {
+        
+        //create our encoder node which contains all encoder expert nodes
+        String[] encoderExpertIDs = new String[num_experts];
+        LoadTreeNode[] encoderExpertNodes = new LoadTreeNode[num_experts];
+        for(int i = 0; i < num_experts; i++){
+            encoderExpertIDs[i] = "" + i;
+            encoderExpertNodes[i] = encoder_experts[i].constructLoadTree();
         }
-        int expert_idx = Integer.parseInt(car2);
-        return exps[expert_idx].load(data, cdr2);
+        LoadTreeNode encoderNode = new LoadTreeNode(encoderExpertIDs, encoderExpertNodes);
+        
+        //create our decoder node which contains all decoder expert nodes
+        String[] decoderExpertIDs = new String[num_experts];
+        LoadTreeNode[] decoderExpertNodes = new LoadTreeNode[num_experts];
+        for(int i = 0; i < num_experts; i++){
+            decoderExpertIDs[i] = "" + i;
+            decoderExpertNodes[i] = encoder_experts[i].constructLoadTree();
+        }
+        LoadTreeNode decoderNode = new LoadTreeNode(decoderExpertIDs, decoderExpertNodes);
+        
+        //create our node which contains our encoder and decoder nodes
+        String[] loadStrings = new String[]{"enc","dec"};
+        LoadTreeNode[] childNodes = new LoadTreeNode[]{encoderNode, decoderNode};
+        LoadTreeNode primaryNode = new LoadTreeNode(loadStrings, childNodes);
+        //assign this node as our primary node and return it
+        assignToNode(primaryNode);
+        return primaryNode;
+    }
+
+    @Override
+    public LoadTreeNode getCurrentLoadTree() {
+        return loadNode;
+    }
+
+    @Override
+    public void assignToNode(LoadTreeNode node) {
+        this.loadNode = node;
+        this.loadNode.setNetworkPiece(this);
     }
 }

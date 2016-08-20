@@ -17,7 +17,9 @@ import mikera.arrayz.INDArray;
  */
 public class LSTM implements Loadable{  
     
+    LoadTreeNode loadNode;
     
+    private AVector state;
     //the state of the cell after last operation, will be fed back into node.
     public AVector cellState;
     //the result Ht of the node
@@ -122,42 +124,35 @@ public class LSTM implements Loadable{
         
         return result.copy();
     }
-
+    
+    @Override
+    public LoadTreeNode constructLoadTree() {
+        String[] loadStrings = new String[]{"activate_b","activate_w","forget_b","forget_w","input_b","input_w","out_b","out_w","initialstate",};
+        INDArray[] dataPointers = new INDArray[]{activationBiases, activationWeights,forgetBiases,forgetWeights,inputBiases,inputWeights,outputBiases,outputWeights,state};
+        LoadTreeNode primaryNode = new LoadTreeNode(loadStrings,dataPointers);
+        assignToNode(primaryNode);
+        return primaryNode;
+    }
+    
+    @Override
+    public void assignToNode(LoadTreeNode loadNode){
+        this.loadNode = loadNode;
+        this.loadNode.setNetworkPiece(this);
+    }
+    
     @Override
     public boolean load(INDArray data, String loadPath) {
-        boolean found = true;
-        switch(loadPath){
-            case "activate_b":  activationBiases = (AVector) data;
-                                break;
-            case "activate_w":  activationWeights = (AMatrix) data;
-                                break;
-            case "forget_b":    forgetBiases = (AVector) data;
-                                break;
-            case "forget_w":    forgetWeights = (AMatrix) data;
-                                break;
-            case "input_b":     inputBiases = (AVector) data;                          
-                                break;
-            case "input_w":     
-                                inputWeights = (AMatrix) data;
-                                break;
-            case "out_b":
-                                
-                                outputBiases = (AVector) data;
-                                break;
-            case "out_w":       
-                                outputWeights = (AMatrix) data;
-                                break;
-            case "initialstate":    AVector dataCast = (AVector) data;
-                                    cellState = dataCast.subVector(0, (dataCast.length()/2)).dense();
-                                    //System.out.println(cellState);
-                                    result = dataCast.subVector(dataCast.length()/2, dataCast.length()/2).dense();
-                                    break;
-            default: found = false;
-                    break;
-        }
+        boolean succeeded = Loadable.super.load(data, loadPath);
+        cellState = state.subVector(0, (state.length()/2)).dense();
+        result = state.subVector(state.length()/2, state.length()/2).dense();
         initWeights();
         initBiases();
-        return found;
+        return succeeded;
+    }
+
+    @Override
+    public LoadTreeNode getCurrentLoadTree() {
+        return loadNode;
     }
     
 }

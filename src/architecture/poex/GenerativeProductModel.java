@@ -1,5 +1,6 @@
 package architecture.poex;
 
+import architecture.LoadTreeNode;
 import architecture.Loadable;
 import filters.Operations;
 import io.leadsheet.LeadsheetDataSequence;
@@ -31,6 +32,7 @@ public class GenerativeProductModel implements Loadable {
     private LeadsheetDataSequence outputSequence;
     private int num_experts;
     private Random rand;
+    private LoadTreeNode loadNode;
     
     public GenerativeProductModel(LeadsheetDataSequence overSequence, int outputSize, int beatVectorSize, int featureVectorSize, int lowbound, int highbound) {
         this.featureVectorSize = featureVectorSize;
@@ -67,16 +69,6 @@ public class GenerativeProductModel implements Loadable {
         for(int i=0; i<this.num_experts; i++) {
             this.last_output_parts[i].provide(this.encodings[i].reset());
         }
-    }
-    
-    @Override
-    public boolean load(INDArray data, String loadPath) {
-        // Expected format: (enc|dec)_#_<expert params>
-        // i.e. enc_1_full_w
-        String car = pathCar(loadPath);
-        String cdr = pathCdr(loadPath);
-        int expert_idx = Integer.parseInt(car);
-        return this.experts[expert_idx].load(data, cdr);
     }
     
     public AVector step() {
@@ -117,5 +109,39 @@ public class GenerativeProductModel implements Loadable {
             this.last_output_parts[i].provide(prev_output);
         }
         return Vector.of(midival);
+    }
+
+    @Override
+    public boolean load(INDArray data, String loadPath) {
+        // Expected format: (enc|dec)_#_<expert params>
+        // i.e. enc_1_full_w
+        String car = pathCar(loadPath);
+        String cdr = pathCdr(loadPath);
+        int expert_idx = Integer.parseInt(car);
+        return this.experts[expert_idx].load(data, cdr);
+    }
+    
+    @Override
+    public LoadTreeNode constructLoadTree() {
+        String[] expertIDs = new String[num_experts];
+        LoadTreeNode[] expertNodes = new LoadTreeNode[num_experts];
+        for(int i = 0; i < num_experts; i++) {
+            expertIDs[i] = "" + i;
+            expertNodes[i] = experts[i].constructLoadTree();
+        }
+        LoadTreeNode primaryNode = new LoadTreeNode(expertIDs, expertNodes);
+        assignToNode(primaryNode);
+        return primaryNode;
+    }
+
+    @Override
+    public LoadTreeNode getCurrentLoadTree() {
+        return loadNode;
+    }
+
+    @Override
+    public void assignToNode(LoadTreeNode node) {
+        this.loadNode = node;
+        node.setNetworkPiece(this);
     }
 }

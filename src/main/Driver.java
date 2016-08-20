@@ -572,12 +572,20 @@ public class Driver {
     public static NameGenerator initializeNameGenerator(String nameGeneratorConnectomePath) {
         NameGenerator nameGenerator = new NameGenerator();
         LogTimer.log("Packing name generator from files...");
-        String[] unmatchedPathsNameGenerator = (new ConnectomeLoader()).load(nameGeneratorConnectomePath, nameGenerator);
+        String[][] unmatchedPathsNameGenerator = (new ConnectomeLoader()).load(nameGeneratorConnectomePath, nameGenerator);
 
-        String[] notFoundNameGen = unmatchedPathsNameGenerator;
+        String[] notFoundNameGen = unmatchedPathsNameGenerator[0];
         if (notFoundNameGen.length > 0) {
             System.err.println(notFoundNameGen.length + " files were not able to be matched to the name generator network!");
             for (String fileName : notFoundNameGen) {
+                System.err.println("\t" + fileName);
+            }
+        }
+        
+        String[] missingNameGen = unmatchedPathsNameGenerator[1];
+        if (missingNameGen.length > 0) {
+            System.err.println(missingNameGen.length + " files needed for loading the name generator were missing from the connectome file!");
+            for (String fileName : missingNameGen) {
                 System.err.println("\t" + fileName);
             }
         }
@@ -597,15 +605,24 @@ public class Driver {
 
         //load the network from connectome file or directory
         LogTimer.startLog("Loading autoencoder from files");
-        String[] autoencoderUnmatchedPaths = (new ConnectomeLoader()).load(autoencoderConnectomePath, autoencoder);
+        String[][] autoencoderUnmatchedPaths = (new ConnectomeLoader()).load(autoencoderConnectomePath, autoencoder);
 
-        String[] autoencoderUnrecognizedPaths = autoencoderUnmatchedPaths;
+        String[] autoencoderUnrecognizedPaths = autoencoderUnmatchedPaths[0];
         if (autoencoderUnrecognizedPaths.length > 0) {
             System.err.println(autoencoderUnrecognizedPaths.length + " files were not recognized by the product compressing autoencoder architecture!");
             for (String fileName : autoencoderUnrecognizedPaths) {
                 System.err.println("\t" + fileName);
             }
         }
+        
+        String[] autoencoderMissingPaths = autoencoderUnmatchedPaths[1];
+        if (autoencoderMissingPaths.length > 0) {
+            System.err.println(autoencoderMissingPaths.length + " files for loading the product compressing autoencoder network were missing from the connectome file!");
+            for (String fileName : autoencoderMissingPaths) {
+                System.err.println("\t" + fileName);
+            }
+        }
+        
         LogTimer.endLog();
         
         return autoencoder;

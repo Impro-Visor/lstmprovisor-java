@@ -24,6 +24,7 @@ import mikera.vectorz.Vector;
  */
 public class CompressingAutoEncoder implements Loadable {
 
+    private LoadTreeNode loadNode;
     private int inputSize;
     private int featureVectorSize;
     private int outputSize;
@@ -162,5 +163,33 @@ public class CompressingAutoEncoder implements Loadable {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public LoadTreeNode constructLoadTree() {
+        String[] encoderLoadStrings = new String[]{"full","lstm1","lstm2"};
+        LoadTreeNode[] encoderLoadNodes = new LoadTreeNode[]{fullLayer1.constructLoadTree(), encoder1.constructLoadTree(), encoder2.constructLoadTree()};
+        LoadTreeNode encoderNode = new LoadTreeNode(encoderLoadStrings, encoderLoadNodes);
+        
+        String[] decoderLoadStrings = new String[]{"full","lstm1","lstm2"};
+        LoadTreeNode[] decoderLoadNodes = new LoadTreeNode[]{fullLayer2.constructLoadTree(), decoder1.constructLoadTree(), decoder2.constructLoadTree()};
+        LoadTreeNode decoderNode = new LoadTreeNode(decoderLoadStrings, decoderLoadNodes);
+        
+        String[] primaryLoadStrings = new String[]{"enc","dec"};
+        LoadTreeNode[] primaryChildNodes = new LoadTreeNode[]{encoderNode, decoderNode};
+        LoadTreeNode primaryNode = new LoadTreeNode(primaryLoadStrings, primaryChildNodes);
+        assignToNode(primaryNode);
+        return primaryNode;
+    }
+
+    @Override
+    public LoadTreeNode getCurrentLoadTree() {
+        return loadNode;
+    }
+
+    @Override
+    public void assignToNode(LoadTreeNode node) {
+        node.setNetworkPiece(this);
+        this.loadNode = node;
     }
 }

@@ -7,6 +7,7 @@ package architecture.poex;
 
 import architecture.FullyConnectedLayer;
 import architecture.LSTM;
+import architecture.LoadTreeNode;
 import architecture.Loadable;
 import filters.Operations;
 import mikera.arrayz.INDArray;
@@ -17,6 +18,7 @@ import mikera.vectorz.AVector;
  * @author cssummer16
  */
 public class Expert implements Loadable {
+    private LoadTreeNode loadNode;
     private LSTM lstm1;
     private LSTM lstm2;
     private FullyConnectedLayer fullLayer;
@@ -33,17 +35,24 @@ public class Expert implements Loadable {
         AVector val3 = fullLayer.forward(val2);
         return val3;
     }
-    
+
     @Override
-    public boolean load(INDArray data, String loadPath) {
-        String car = pathCar(loadPath);
-        String cdr = pathCdr(loadPath);
-        switch(car)
-        {
-            case "full": return fullLayer.load(data, cdr);
-            case "lstm1": return lstm1.load(data, cdr);
-            case "lstm2": return lstm2.load(data, cdr);
-            default: return false;
-        }
+    public LoadTreeNode constructLoadTree() {
+        String[] loadStrings = new String[]{"full","lstm1","lstm2"};
+        LoadTreeNode[] childNodes = new LoadTreeNode[]{fullLayer.constructLoadTree(), lstm1.constructLoadTree(), lstm2.constructLoadTree()};
+        LoadTreeNode loadNode = new LoadTreeNode(loadStrings, childNodes);
+        assignToNode(loadNode);
+        return loadNode;
+    }
+
+    @Override
+    public LoadTreeNode getCurrentLoadTree() {
+        return loadNode;
+    }
+
+    @Override
+    public void assignToNode(LoadTreeNode node) {
+        this.loadNode = node;
+        this.loadNode.setNetworkPiece(this);
     }
 }

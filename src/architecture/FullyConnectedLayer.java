@@ -18,6 +18,7 @@ import mikera.matrixx.AMatrix;
  */
 public class FullyConnectedLayer implements Loadable {
     
+    private LoadTreeNode loadNode;
     private AMatrix weights;
     private AVector biases;
     private Operations type;
@@ -36,16 +37,24 @@ public class FullyConnectedLayer implements Loadable {
             multResult.add(biases);
             return type.operate(multResult);
     }
+    
+    @Override
+    public LoadTreeNode constructLoadTree() {
+        String[] loadStrings = new String[]{"b","w"};
+        INDArray[] dataPointers = new INDArray[]{biases, weights};
+        LoadTreeNode primaryNode = new LoadTreeNode(loadStrings, dataPointers);
+        assignToNode(primaryNode);
+        return primaryNode;
+    }
 
     @Override
-    public boolean load(INDArray data, String loadPath) {
-        switch(loadPath)
-        {
-            case "b":   this.biases = (AVector) data;
-                        return true;
-            case "w":   this.weights = (AMatrix) data;
-                        return true;
-            default:    return false;
-        }
+    public LoadTreeNode getCurrentLoadTree() {
+        return loadNode;
+    }
+
+    @Override
+    public void assignToNode(LoadTreeNode node) {
+        this.loadNode = node;
+        this.loadNode.setNetworkPiece(this);
     }
 }

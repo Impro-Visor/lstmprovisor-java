@@ -22,11 +22,11 @@ import java.util.zip.ZipInputStream;
  */
 public class ConnectomeLoader {
     
-    public String[] load (String meatFolderOrZipPath, Loadable network){
+    public String[][] load (String meatFolderOrZipPath, Loadable network){
         return refresh(meatFolderOrZipPath, network, "");
     }
     
-    public String[] refresh (String meatFolderOrZipPath, Loadable network, String filter)
+    public String[][] refresh (String meatFolderOrZipPath, Loadable network, String filter)
     {
         
         try {
@@ -81,8 +81,10 @@ public class ConnectomeLoader {
                 throw new RuntimeException("Not a directory or a zip file!!!");
             }
             
+            List<String> unsuccessfulPaths = network.getCurrentLoadTree().getUnsuccessfullPaths();
+            String[] missingPaths = unsuccessfulPaths.toArray(new String[unsuccessfulPaths.size()]);
             
-            return unrecognizedPaths;
+            return new String[][]{unrecognizedPaths, missingPaths};
             
         } catch(Exception e)
         {

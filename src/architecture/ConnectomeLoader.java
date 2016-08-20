@@ -12,6 +12,7 @@ import java.io.FilenameFilter;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -19,16 +20,17 @@ import java.util.zip.ZipInputStream;
  *
  * @author cssummer16
  */
-public class NetworkMeatPacker {
+public class ConnectomeLoader {
     
-    public String[] pack (String meatFolderOrZipPath, Loadable network){
+    public String[] load (String meatFolderOrZipPath, Loadable network){
         return refresh(meatFolderOrZipPath, network, "");
     }
     
     public String[] refresh (String meatFolderOrZipPath, Loadable network, String filter)
     {
-        String[] namesNotFound = null;
+        
         try {
+            String[] unrecognizedPaths = null;
             File meatFileOrFolder = new File(meatFolderOrZipPath);
             if(meatFileOrFolder.isDirectory())
             {
@@ -45,20 +47,19 @@ public class NetworkMeatPacker {
                     if(found[i])
                         numFound++;
                 }
-                namesNotFound = new String[meatFiles.length - numFound];
+                unrecognizedPaths = new String[meatFiles.length - numFound];
                 int j = 0;
                 for(int i = 0; i < found.length; i++)
                 {
                     if(!found[i])
-                        namesNotFound[j++] = meatFiles[i].getPath();
+                        unrecognizedPaths[j++] = meatFiles[i].getPath();
                 }
-                return namesNotFound;
 
             }
             else if(meatFileOrFolder.isFile())
             {
                 // Try to read it as a zip file of params
-                ArrayList<String> namesNotFoundList = new ArrayList<String>();
+                ArrayList<String> unrecognizedPathsList = new ArrayList<String>();
                 FileInputStream fis = new FileInputStream(meatFileOrFolder);
                 ZipInputStream zin = new ZipInputStream(new BufferedInputStream(fis));
                 ZipEntry entry;
@@ -70,21 +71,23 @@ public class NetworkMeatPacker {
                         Reader zreader = new InputStreamReader(zin);
                         boolean found = network.load(nickd4j.ReadWriteUtilities.readNumpyCSVReader(zreader), loadPath);
                         if(!found)
-                            namesNotFoundList.add(entry.getName());
+                            unrecognizedPathsList.add(entry.getName());
                     }
                 }
-                namesNotFound = new String[namesNotFoundList.size()];
-                return namesNotFoundList.toArray(namesNotFound);
+                unrecognizedPaths = unrecognizedPathsList.toArray(new String[unrecognizedPathsList.size()]);
             }
             else
             {
                 throw new RuntimeException("Not a directory or a zip file!!!");
             }
             
+            
+            return unrecognizedPaths;
+            
         } catch(Exception e)
         {
             e.printStackTrace();
         }
-        return namesNotFound;
+        return null;
     }
 }

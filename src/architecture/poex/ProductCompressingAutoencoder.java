@@ -9,7 +9,7 @@ import architecture.DataStep;
 import architecture.FragmentedNeuralQueue;
 import architecture.Loadable;
 import filters.Operations;
-import io.leadsheet.LeadSheetDataSequence;
+import io.leadsheet.LeadsheetDataSequence;
 import java.util.Random;
 import mikera.arrayz.INDArray;
 import mikera.vectorz.AVector;
@@ -20,10 +20,7 @@ import nickd4j.NNUtilities;
  *
  * @author cssummer16
  */
-public class ProductCompressingAutoEncoder implements Loadable {
-    private int inputSize;
-    private int featureVectorSize;
-    private int outputSize;
+public class ProductCompressingAutoencoder implements Loadable {
     private int low_bound;
     private int high_bound;
     private boolean variational;
@@ -46,11 +43,8 @@ public class ProductCompressingAutoEncoder implements Loadable {
     
     private Random rand;
     
-    public ProductCompressingAutoEncoder(int fixedFeatureLength, int inputSize, int outputSize, int beatVectorSize, int featureVectorSize, int lowbound, int highbound, boolean variational){
+    public ProductCompressingAutoEncoder(int fixedFeatureLength, int beatVectorSize, int lowbound, int highbound, boolean variational){
         this.fixedFeatureLength = fixedFeatureLength;
-        this.inputSize = inputSize;
-        this.outputSize = outputSize;
-        this.featureVectorSize = featureVectorSize;
         this.low_bound = lowbound;
         this.high_bound = highbound;
         this.rand = new Random();
@@ -66,14 +60,14 @@ public class ProductCompressingAutoEncoder implements Loadable {
         this.decoder_experts[0] = new Expert(Operations.None);
         this.decoder_experts[1] = new Expert(Operations.None);
         
-        this.beat_part = new PassthroughInputPart(beatVectorSize);
-        this.feature_part = new PassthroughInputPart(this.featureVectorSize);
+        this.beat_part = new PassthroughInputPart();
+        this.feature_part = new PassthroughInputPart();
         this.cur_output_parts = new PassthroughInputPart[2];
-        this.cur_output_parts[0] = new PassthroughInputPart(this.outputSize);
-        this.cur_output_parts[1] = new PassthroughInputPart(this.outputSize);
+        this.cur_output_parts[0] = new PassthroughInputPart();
+        this.cur_output_parts[1] = new PassthroughInputPart();
         this.last_output_parts = new PassthroughInputPart[2];
-        this.last_output_parts[0] = new PassthroughInputPart(this.outputSize);
-        this.last_output_parts[1] = new PassthroughInputPart(this.outputSize);
+        this.last_output_parts[0] = new PassthroughInputPart();
+        this.last_output_parts[1] = new PassthroughInputPart();
         
         this.encoder_inputs = new RelativeInputPart[2][4];
         this.encoder_inputs[0][0] = this.beat_part;
@@ -143,16 +137,14 @@ public class ProductCompressingAutoEncoder implements Loadable {
         Operations processOp = variational ? Operations.NormalSample : Operations.Sigmoid;
         if(fixedFeatureLength > 0)
         {
+             AVector featureVec = processOp.operate(accum_activations);
             if((currTimeStep+1) % fixedFeatureLength == 0)
             {
-                AVector featureVec = processOp.operate(accum_activations);
-                if(featureVec.length() != featureVectorSize)
-                    throw new RuntimeException("Bad activations length");
                 this.queue.enqueueStep(featureVec, 1.0);
             }
             else
             {
-                this.queue.enqueueStep(Vector.createLength(featureVectorSize), 0.0);
+                this.queue.enqueueStep(featureVec, 0.0);
             }
 
             currTimeStep++;
@@ -163,8 +155,6 @@ public class ProductCompressingAutoEncoder implements Loadable {
             AVector activationsPart = accum_activations.subVector(1, accum_activations.length()-1);
             strengthPart = Operations.Sigmoid.operate(strengthPart);
             AVector featureVec = processOp.operate(activationsPart);
-            if(featureVec.length() != featureVectorSize)
-                throw new RuntimeException("Bad activations length");
             double strength = strengthPart.get(0);
             this.queue.enqueueStep(featureVec, strength);
         }

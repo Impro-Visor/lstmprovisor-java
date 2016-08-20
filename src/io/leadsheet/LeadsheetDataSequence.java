@@ -17,7 +17,7 @@ import mikera.vectorz.AVector;
  *
  * @author cssummer16
  */
-public class LeadSheetDataSequence implements DataSequence{
+public class LeadsheetDataSequence implements DataSequence{
     private Queue<AVector> beats;
     private Queue<AVector> chords;
     private Queue<AVector> melody;
@@ -32,7 +32,7 @@ public class LeadSheetDataSequence implements DataSequence{
         return Math.max(melody.size(), Math.max(beats.size(), chords.size()));
     }
     
-    public LeadSheetDataSequence()
+    public LeadsheetDataSequence()
     {
         beats = new LinkedList<>();
         chords = new LinkedList<>();
@@ -40,6 +40,10 @@ public class LeadSheetDataSequence implements DataSequence{
         entrySize = 0;
         style = "swing";
         tempo = "160";
+    }
+    
+    public int melodySize(){
+        return melody.size();
     }
     
     public String getStyle()
@@ -57,7 +61,7 @@ public class LeadSheetDataSequence implements DataSequence{
         return !chords.isEmpty() && !beats.isEmpty();
     }
     
-    public void concat(LeadSheetDataSequence additional)
+    public void concat(LeadsheetDataSequence additional)
     {
         while(!additional.beats.isEmpty())
             beats.offer(additional.beats.poll());
@@ -72,8 +76,8 @@ public class LeadSheetDataSequence implements DataSequence{
      * @return A duplicate of this LeadSheetDataSequence 
      */
     @Override
-    public LeadSheetDataSequence copy() {
-        LeadSheetDataSequence duplicate = new LeadSheetDataSequence();
+    public LeadsheetDataSequence copy() {
+        LeadsheetDataSequence duplicate = new LeadsheetDataSequence();
         beats.stream().forEach((beat) -> {duplicate.beats.offer(beat.copy());});
         chords.stream().forEach((chord) -> {duplicate.chords.offer(chord.copy());});
         melody.stream().forEach((noteStep) -> {duplicate.melody.offer(noteStep.copy());});

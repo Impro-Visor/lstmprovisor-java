@@ -13,10 +13,6 @@ import nickd4j.NNUtilities;
  * @author cssummer16
  */
 public class ChordInputPart extends RelativeInputPart {
-    @Override
-    public int get_width() {
-        return 12;
-    }
 
     @Override
     public AVector generate(int relativePosition, int chordRoot, AVector chordTypeData) {

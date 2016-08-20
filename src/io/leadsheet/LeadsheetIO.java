@@ -27,16 +27,16 @@ import mikera.vectorz.AVector;
  *
  * @author cssummer16
  */
-public class LeadSheetIO {
-    public static LeadSheetDataSequence readLeadSheet(File filename) {
-        return readLeadSheet(filename.getAbsolutePath());
+public class LeadsheetIO {
+    public static LeadsheetDataSequence readLeadsheet(File filename) {
+        return readLeadsheet(filename.getAbsolutePath());
     }
 
-    public static LeadSheetDataSequence readLeadSheet(String filename) {
-        NoteSymbol[] currMelody = readLeadSheetMelody(filename);
-        Chord[] currChords = LeadSheetIO.readLeadSheetChords(filename);
+    public static LeadsheetDataSequence readLeadsheet(String filename) {
+        NoteSymbol[] currMelody = readLeadsheetMelody(filename);
+        Chord[] currChords = LeadsheetIO.readLeadsheetChords(filename);
         
-        LeadSheetDataSequence sequence = new LeadSheetDataSequence();
+        LeadsheetDataSequence sequence = new LeadsheetDataSequence();
         NoteEncoder noteEncoder = EncodingParameters.noteEncoder;
         int noteSteps = 0;
         for(NoteSymbol note : currMelody)
@@ -108,11 +108,11 @@ public class LeadSheetIO {
             throw new RuntimeException("Dude...the chord, beat, and note sequence lengths don't match");
     }
     
-    public static NoteSymbol[] readLeadSheetMelody(File file) {
-        return readLeadSheetMelody(file.getAbsolutePath());
+    public static NoteSymbol[] readLeadsheetMelody(File file) {
+        return readLeadsheetMelody(file.getAbsolutePath());
     }
     
-    public static NoteSymbol[] readLeadSheetMelody(String filename) {
+    public static NoteSymbol[] readLeadsheetMelody(String filename) {
         ArrayList<NoteSymbol> melody = new ArrayList<NoteSymbol>();
         try {
             Tokenizer tokenizer = new Tokenizer(new FileInputStream(filename));
@@ -137,14 +137,14 @@ public class LeadSheetIO {
         }
         NoteSymbol[] notes = new NoteSymbol[melody.size()];
         return melody.toArray(notes);
-    } // end of method parseLeadSheet
+    } // end of method parseLeadsheet
 
-    public static Chord[] readLeadSheetChords(File file) {
-        return LeadSheetIO.readLeadSheetChords(file.getAbsolutePath());
+    public static Chord[] readLeadsheetChords(File file) {
+        return LeadsheetIO.readLeadsheetChords(file.getAbsolutePath());
     }
     
     //TODO: make this support more than 8th note resolution files
-    public static Chord[] readLeadSheetChords(String filename) {
+    public static Chord[] readLeadsheetChords(String filename) {
 
         ArrayList<Chord> chords = new ArrayList<Chord>();
         ArrayList<Chord> partialChordList = new ArrayList<Chord>();
@@ -201,7 +201,7 @@ public class LeadSheetIO {
     
     public static int writtenChordLength;
     
-    public static void writeLeadSheet(LeadSheetDataSequence data, String filename, String songTitle)
+    public static void writeLeadsheet(LeadsheetDataSequence data, String filename, String songTitle)
     {
         try {
             BufferedWriter outputWriter = new BufferedWriter(new FileWriter(new File(filename)));
@@ -251,7 +251,7 @@ public class LeadSheetIO {
                         //System.out.println(noteValue + " is note value that is ending!");
                         Note note;
                         if(noteValue == -1)
-                            note = Note.makeRest(duration * Constants.RESOLUTION_SCALAR); //construct a LeadSheet Note from the the midiValue and duation in timeSteps
+                            note = Note.makeRest(duration * Constants.RESOLUTION_SCALAR); //construct a Leadsheet Note from the the midiValue and duation in timeSteps
                         else
                             note = new Note(noteValue, duration * Constants.RESOLUTION_SCALAR);
                         outputWriter.write(note.toLeadsheet() + " ");
@@ -262,7 +262,7 @@ public class LeadSheetIO {
                 }
                 Note note;
                 if(noteValue == -1)
-                    note = Note.makeRest(duration * Constants.RESOLUTION_SCALAR); //construct a LeadSheet Note from the the midiValue and duation in timeSteps
+                    note = Note.makeRest(duration * Constants.RESOLUTION_SCALAR); //construct a Leadsheet Note from the the midiValue and duation in timeSteps
                 else
                     note = new Note(noteValue, duration * Constants.RESOLUTION_SCALAR);
                 outputWriter.write(note.toLeadsheet() + " ");

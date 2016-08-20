@@ -2,7 +2,7 @@ package architecture.poex;
 
 import architecture.Loadable;
 import filters.Operations;
-import io.leadsheet.LeadSheetDataSequence;
+import io.leadsheet.LeadsheetDataSequence;
 import java.util.Random;
 import mikera.arrayz.INDArray;
 import mikera.vectorz.AVector;
@@ -28,11 +28,11 @@ public class GenerativeProductModel implements Loadable {
     private RelativeNoteEncoding[] encodings;
     private PassthroughInputPart beat_part;
     private PassthroughInputPart last_output_parts[];
-    private LeadSheetDataSequence outputSequence;
+    private LeadsheetDataSequence outputSequence;
     private int num_experts;
     private Random rand;
     
-    public GenerativeProductModel(LeadSheetDataSequence overSequence, int outputSize, int beatVectorSize, int featureVectorSize, int lowbound, int highbound) {
+    public GenerativeProductModel(LeadsheetDataSequence overSequence, int outputSize, int beatVectorSize, int featureVectorSize, int lowbound, int highbound) {
         this.featureVectorSize = featureVectorSize;
         this.low_bound = lowbound;
         this.high_bound = highbound;
@@ -45,10 +45,10 @@ public class GenerativeProductModel implements Loadable {
         this.experts[0] = new Expert(Operations.None);
         this.experts[1] = new Expert(Operations.None);
         
-        this.beat_part = new PassthroughInputPart(beatVectorSize);
+        this.beat_part = new PassthroughInputPart();
         this.last_output_parts = new PassthroughInputPart[2];
-        this.last_output_parts[0] = new PassthroughInputPart(outputSize);
-        this.last_output_parts[1] = new PassthroughInputPart(outputSize);
+        this.last_output_parts[0] = new PassthroughInputPart();
+        this.last_output_parts[1] = new PassthroughInputPart();
         
         this.inputs = new RelativeInputPart[2][4];
         this.inputs[0][0] = this.beat_part;

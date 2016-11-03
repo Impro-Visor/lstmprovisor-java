@@ -84,7 +84,8 @@ public class Driver {
      *                  * feature_size={the size (in time steps) of features}
      *      'population_trade' - Given a leadsheet file, split it into sections of a specified size, and between sections, generate a response that plays off of a population of previously encoded feature queues
      *                  * autoencoder_connectome={the path to the connectome which the autoencoder will be loaded with}
-     *                  * input_leadsheet={the path to the leadsheet file which will be encoded and traded with}     *                  * output_folder={the path to the output folder which the result leadsheet file will be written in}
+     *                  * input_leadsheet={the path to the leadsheet file which will be encoded and traded with}     
+     *                  * output_folder={the path to the output folder which the result leadsheet file will be written in}
      *                  * trading_part_size={the size (in time steps) of each trading part. The input leadsheet will be split into sections of this size, and trading responses will be generated in between.}
      *                  * interpolation_variance={a random value between zero and this will be added to the interpolation_min at each trading section to calculate the interpolation of the recently encoded queue towards the queue population before decoding the trading response}
      *                  * interpolation_min={the minimum ratio of interpolation at each trading section}
@@ -130,7 +131,7 @@ public class Driver {
 
                 //initialize networks
                 NameGenerator nameGenerator = initializeNameGenerator(nameGeneratorConnectomePath);
-                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath);
+                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath, false);
 
                 //initialize input sequences and output sequence
                 LeadsheetDataSequence inputSequence = leadsheetToSequence(inputLeadsheetPath);
@@ -157,7 +158,7 @@ public class Driver {
                 String queueFolderPath = config.getString("queue_folder");
 
                 //initialize network
-                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath);
+                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath, false);
 
                 //initialize input sequence
                 LeadsheetDataSequence inputSequence = leadsheetToSequence(inputLeadsheetPath);
@@ -178,7 +179,7 @@ public class Driver {
 
                 //initialize networks
                 NameGenerator nameGenerator = initializeNameGenerator(nameGeneratorConnectomePath);
-                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath);
+                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath, false);
 
                 //initialize input sequences and output sequence
                 LeadsheetDataSequence inputSequence = leadsheetToSequence(inputLeadsheetPath);
@@ -248,7 +249,7 @@ public class Driver {
                 int featureSize = config.getInt("feature_size");
 
                 //initialize network
-                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath);
+                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath, false);
 
                 //initialize chord sequence
                 LeadsheetDataSequence chordSequence = leadsheetToSequence(referenceLeadsheetPath);
@@ -271,7 +272,7 @@ public class Driver {
                 double crossoverStrength = config.getDouble("crossover_strength");
                 
                 //initialize network
-                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath);
+                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath, true);
                 
                 //perform population trading test
                 populationTradingTest(autoencoder, autoencoderConnectomePath, new File(inputLeadsheetPath), new File(outputFolderPath), tradingPartSize, interpVariance, interpMin, herdingStrength, mutationStrength, crossoverStrength);
@@ -286,7 +287,7 @@ public class Driver {
                 int numInterpolationDivisions = config.getInt("num_interpolation_divisions");
 
                 //initialize network
-                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath);
+                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath, false);
 
                 //perform the interpolation test
                 interpolateTest(autoencoder, autoencoderConnectomePath, new File(inputLeadsheetPath), new File(targetQueuePath), new File(outputFolderPath), numInterpolationDivisions);
@@ -304,7 +305,7 @@ public class Driver {
                 double interpolationMagnitude = config.getDouble("interpolation_strength");
 
                 //initialize network
-                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath);
+                ProductCompressingAutoencoder autoencoder = initializeAutoencoder(autoencoderConnectomePath, false);
 
                 //initialize chord sequence
                 LeadsheetDataSequence chordSequence = leadsheetToSequence(referenceLeadsheetPath);
@@ -547,7 +548,7 @@ public class Driver {
                     LogTimer.endLog();
                 }
                 String fileName = inputFile.getName().replace(".ls","");
-                writeLeadsheetFile(outputSequence, fileName, "_TradingOutput", "Trading on " + fileName);
+                writeLeadsheetFile(outputSequence, outputFolder.getPath(), fileName, "_TradingOutput", "Trading on " + fileName);
     }
     
     /**
@@ -598,10 +599,10 @@ public class Driver {
      * @param autoencoderConnectomePath The path of the connectome to load into the network
      * @return The created product compressing autoencoder network
      */
-    public static ProductCompressingAutoencoder initializeAutoencoder(String autoencoderConnectomePath){
+    public static ProductCompressingAutoencoder initializeAutoencoder(String autoencoderConnectomePath, boolean variational){
         //Initialization
         LogTimer.log("Initializing autoencoder...");
-        ProductCompressingAutoencoder autoencoder = new ProductCompressingAutoencoder(24, 9, 48, 84 + 1, false); //create our network
+        ProductCompressingAutoencoder autoencoder = new ProductCompressingAutoencoder(24, 9, 48, 84 + 1, variational); //create our network
 
         //load the network from connectome file or directory
         LogTimer.startLog("Loading autoencoder from files");

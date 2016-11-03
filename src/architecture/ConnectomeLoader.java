@@ -84,7 +84,7 @@ public class ConnectomeLoader {
             {
                 throw new RuntimeException("Not a directory or a zip file!!!");
             }
-            
+            network.postLoad();
             List<String> unsuccessfulPaths = network.getCurrentLoadTree().getUnsuccessfullPaths();
             String[] missingPaths = unsuccessfulPaths.toArray(new String[unsuccessfulPaths.size()]);
             

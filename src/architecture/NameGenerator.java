@@ -68,11 +68,6 @@ public class NameGenerator implements Loadable {
         }
         return songTitle.trim();
     }
-
-    @Override
-    public void postLoad() {
-        
-    }
     
     
 

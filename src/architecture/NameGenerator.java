@@ -27,6 +27,7 @@ public class NameGenerator implements Loadable {
     public NameGenerator() {
         lstm = new LSTM();
         fullLayer = new FullyConnectedLayer(Operations.None);
+        
     }
     
     @Override
@@ -66,6 +67,11 @@ public class NameGenerator implements Loadable {
             songTitle += characterString.substring(charIndex, charIndex + 1);
         }
         return songTitle.trim();
+    }
+
+    @Override
+    public void postLoad() {
+        
     }
     
     

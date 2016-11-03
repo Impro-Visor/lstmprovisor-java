@@ -9,6 +9,8 @@ import filters.Operations;
 import mikera.matrixx.AMatrix;
 import mikera.vectorz.AVector;
 import mikera.arrayz.INDArray;
+import mikera.matrixx.Matrix;
+import mikera.vectorz.Vector;
 
 /**
  * Class LSTMNode implements an LSTM neural network node as described by Hochreiter and Schmidhuber (and explaiend by colah's blog).
@@ -48,6 +50,20 @@ public class LSTM implements Loadable{
         biases = new AVector[4];
         sigmoidLayers = new AVector[3];
         sigmoidMult1 = new AVector[3];
+        initDummyData();
+        
+    }
+    
+    public void initDummyData(){
+        activationWeights = Matrix.create(1,1);
+        activationBiases = Vector.create(new double[1]);
+        forgetWeights = Matrix.create(1,1);
+        forgetBiases = Vector.create(new double[1]);
+        inputWeights = Matrix.create(1,1);
+        inputBiases = Vector.create(new double[1]);
+        outputWeights = Matrix.create(1,1);
+        outputBiases = Vector.create(new double[1]);
+        state = Vector.create(new double[1]);
     }
     
     public void initWeights()
@@ -127,9 +143,25 @@ public class LSTM implements Loadable{
     
     @Override
     public LoadTreeNode constructLoadTree() {
-        String[] loadStrings = new String[]{"activate_b","activate_w","forget_b","forget_w","input_b","input_w","out_b","out_w","initialstate",};
-        INDArray[] dataPointers = new INDArray[]{activationBiases, activationWeights,forgetBiases,forgetWeights,inputBiases,inputWeights,outputBiases,outputWeights,state};
-        LoadTreeNode primaryNode = new LoadTreeNode(loadStrings,dataPointers);
+        
+        DataPointer[] activationPointers = new DataPointer[]{ new DataPointer(data -> activationBiases = data.asVector()),
+                                                            new DataPointer(data -> activationWeights = (AMatrix) data)};
+        DataPointer[] forgetPointers = new DataPointer[]{ new DataPointer(data -> forgetBiases = data.asVector()),
+                                                            new DataPointer(data -> forgetWeights = (AMatrix) data)};
+        DataPointer[] inputPointers = new DataPointer[]{ new DataPointer(data -> inputBiases = data.asVector()),
+                                                            new DataPointer(data -> inputWeights = (AMatrix) data)};
+        DataPointer[] outputPointers = new DataPointer[]{ new DataPointer(data -> outputBiases = data.asVector()),
+                                                            new DataPointer(data -> outputWeights = (AMatrix) data)};
+        DataPointer statePointer = new DataPointer(data -> state = data.asVector());
+        LoadTreeNode activateNode = new LoadTreeNode(new String[]{"b", "w"}, activationPointers);
+        LoadTreeNode forgetNode = new LoadTreeNode(new String[]{"b", "w"}, forgetPointers);
+        LoadTreeNode inputNode = new LoadTreeNode(new String[]{"b", "w"}, inputPointers);
+        LoadTreeNode outputNode = new LoadTreeNode(new String[]{"b", "w"}, outputPointers);
+        LoadTreeNode stateNode = new LoadTreeNode("initialstate", statePointer);
+        
+        String[] loadStrings = new String[]{"activate","forget","input","out","initialstate"};
+        LoadTreeNode[] loadNodes = new LoadTreeNode[]{activateNode, forgetNode, inputNode, outputNode, stateNode};
+        LoadTreeNode primaryNode = new LoadTreeNode(loadStrings,loadNodes);
         assignToNode(primaryNode);
         return primaryNode;
     }
@@ -141,13 +173,12 @@ public class LSTM implements Loadable{
     }
     
     @Override
-    public boolean load(INDArray data, String loadPath) {
-        boolean succeeded = Loadable.super.load(data, loadPath);
+    public void postLoad(){
+        Loadable.super.postLoad();
         cellState = state.subVector(0, (state.length()/2)).dense();
         result = state.subVector(state.length()/2, state.length()/2).dense();
         initWeights();
         initBiases();
-        return succeeded;
     }
 
     @Override

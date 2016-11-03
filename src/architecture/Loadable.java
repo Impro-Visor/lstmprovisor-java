@@ -5,6 +5,7 @@
  */
 package architecture;
 
+import java.util.LinkedList;
 import mikera.arrayz.INDArray;
 
 /**
@@ -22,12 +23,25 @@ public interface Loadable {
     public void assignToNode(LoadTreeNode node);
 
     public default void postLoad() {
-        LoadTreeNode[] children = getCurrentLoadTree().getChildren();
-        if(children != null) {
-            for(int i = 0; i < children.length; i++){
-                children[i].getNetworkPiece().postLoad();
+        if(getCurrentLoadTree().getChildren() != null) {
+            LinkedList<LoadTreeNode> nodeQueue = new LinkedList<LoadTreeNode>();
+            for(LoadTreeNode child : getCurrentLoadTree().getChildren()){
+                nodeQueue.offer(child);
+            }
+            while (!nodeQueue.isEmpty()) {
+                LoadTreeNode curr = nodeQueue.poll();
+                if (curr.getNetworkPiece() != null) {
+                    curr.getNetworkPiece().postLoad();
+                }
+                LoadTreeNode[] children = curr.getChildren();
+                if (children != null) {
+                    for (LoadTreeNode child : children) {
+                        nodeQueue.offer(child);
+                    }
+                }
             }
         }
+
     }
     
     public default String pathCar(String loadPath) {

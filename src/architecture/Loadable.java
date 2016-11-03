@@ -21,6 +21,15 @@ public interface Loadable {
 
     public void assignToNode(LoadTreeNode node);
 
+    public default void postLoad() {
+        LoadTreeNode[] children = getCurrentLoadTree().getChildren();
+        if(children != null) {
+            for(int i = 0; i < children.length; i++){
+                children[i].getNetworkPiece().postLoad();
+            }
+        }
+    }
+    
     public default String pathCar(String loadPath) {
         return loadPath.replaceFirst(SEPARATOR + ".*", "");
     }
@@ -47,23 +56,42 @@ public interface Loadable {
             /*  If our load path isn't empty yet, we assume that we are going to try to load one of the children. 
                 If no child whose load string matches the next element of the path is found, then this node either has a singular data pointer (return true), or the path has hanging elements
              */
+            
             LoadTreeNode[] currChildren = currNode.getChildren();
             if (currChildren == null) {
-                //this is reached iff there are still elements left in the search path, but the current node has no child nodes
+               
+                if (pathCdr(searchPath).length() == 0 && currNode.getLoadString().equals(pathCar(searchPath))) {
+                    if (currNode.getDataPointer() != null) {
+                        /* If this case triggers, then that means:
+                            -This is a loadable network piece whose node possesses a data pointer in addition to child nodes
+                            -A load path was supplied which points only to this loadable, and no further. */
+                        currNode.setData(data);
+                        currNode.setSuccessful(true);
+                        
+                        return true;
+                    } else {
+                        //this is reached iff the node the path is pointing to doesn't possess a data pointer to load to
+                        return false;
+                    }
+                }
+                //this is reached iff there are still elements left in the search path, but the current node has no child nodes and doesn't match the car of searchpath
                 return false;
             } else {
                 String pathCar = pathCar(searchPath); //the next element of the path
                 String pathCdr = pathCdr(searchPath); //the remainder of the path to search for after locating this element 
                 boolean foundMatchingChild = false;
+                
                 //search the children for a node whose load string matches the current element of the path
                 int i = 0;
                 for (; i < currChildren.length; i++) {
+                    
                     if (currChildren[i].getLoadString().equals(pathCar)) {
                         foundMatchingChild = true;
                         break;
                     }
                 }
                 if (foundMatchingChild) {
+                    
                     /* If the found child has a network piece associated, 
                        then we can call load() on it to give it control of how it loads from the remaining path */
                     if (currChildren[i].getNetworkPiece() != null) {
@@ -77,16 +105,19 @@ public interface Loadable {
                         searchPath = pathCdr;
                     }
                 } else {
+                    
                     //this is reached iff none of the current node's children match the next element of the path
                     return false;
                 }
             }
         }
+        
         if (currNode.getDataPointer() != null) {
+            
             /* If this case triggers, then that means:
                -This is a loadable network piece whose node possesses a data pointer in addition to child nodes
                -A load path was supplied which points only to this loadable, and no further. */
-            currNode.getDataPointer().set(data);
+            currNode.setData(data);
             currNode.setSuccessful(true);
             return true;
         } else {
@@ -97,6 +128,15 @@ public interface Loadable {
     
     public default String pathCdr(String loadPath)
     {
-        return loadPath.replaceFirst("[^" + SEPARATOR + "]*" + SEPARATOR, "");
+        int counter = 0;
+        for( int i=0; i<loadPath.length(); i++ ) {
+            if( loadPath.charAt(i) == '_' ) {
+               counter++;
+            } 
+        }
+        if(counter == 0)
+            return "";
+        else
+            return loadPath.replaceFirst("[^" + SEPARATOR + "]*" + SEPARATOR, "");
     }
 }

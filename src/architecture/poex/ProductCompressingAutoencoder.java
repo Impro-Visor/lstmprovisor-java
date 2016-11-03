@@ -296,7 +296,7 @@ public class ProductCompressingAutoencoder implements Loadable {
         LoadTreeNode[] decoderExpertNodes = new LoadTreeNode[num_experts];
         for(int i = 0; i < num_experts; i++){
             decoderExpertIDs[i] = "" + i;
-            decoderExpertNodes[i] = encoder_experts[i].constructLoadTree();
+            decoderExpertNodes[i] = decoder_experts[i].constructLoadTree();
         }
         LoadTreeNode decoderNode = new LoadTreeNode(decoderExpertIDs, decoderExpertNodes);
         

@@ -10,6 +10,7 @@ import mikera.arrayz.INDArray;
 import mikera.vectorz.AVector;
 import mikera.vectorz.Vector;
 import mikera.matrixx.AMatrix;
+import mikera.matrixx.Matrix;
 
 /**
  * Class FullyConnectedLayer is an implementation of a simple neural network layer which multiplies inputs by a weight matrix and adds biases,
@@ -28,6 +29,7 @@ public class FullyConnectedLayer implements Loadable {
     public FullyConnectedLayer (Operations type)
     {
         this.type = type;
+        initDummyData();
     }
     
     public AVector forward (AVector input)
@@ -41,7 +43,8 @@ public class FullyConnectedLayer implements Loadable {
     @Override
     public LoadTreeNode constructLoadTree() {
         String[] loadStrings = new String[]{"b","w"};
-        INDArray[] dataPointers = new INDArray[]{biases, weights};
+        DataPointer[] dataPointers = new DataPointer[]{ new DataPointer(data -> biases = data.asVector()), 
+                                                        new DataPointer(data -> weights = (AMatrix) data)};
         LoadTreeNode primaryNode = new LoadTreeNode(loadStrings, dataPointers);
         assignToNode(primaryNode);
         return primaryNode;
@@ -56,5 +59,10 @@ public class FullyConnectedLayer implements Loadable {
     public void assignToNode(LoadTreeNode node) {
         this.loadNode = node;
         this.loadNode.setNetworkPiece(this);
+    }
+
+    private void initDummyData() {
+        weights = Matrix.create(1,1);
+        biases = Vector.create(new double[1]);
     }
 }

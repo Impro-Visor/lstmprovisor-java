@@ -20,19 +20,21 @@ public class LoadTreeNode {
     private LoadTreeNode[] children;
     private String loadString;
     private boolean successful;
-    private INDArray dataPointer;
+    private DataPointer dataPointer;
     private Loadable networkPiece;
+    private boolean shouldHaveDataPointer;
 
     /**
      * Constructor which initializes a node with the given load string and data pointer. Useful for leaf nodes.
      * @param loadString
      * @param dataPointer 
      */
-    public LoadTreeNode(String loadString, INDArray dataPointer){
+    public LoadTreeNode(String loadString, DataPointer dataPointer){
         setLoadString(loadString);
         this.children = null;
         this.successful = false;
         this.dataPointer = dataPointer;
+        
         this.networkPiece = null;
     }
     
@@ -64,7 +66,7 @@ public class LoadTreeNode {
      * @param loadStrings The load strings to assign to the leaf nodes
      * @param dataPointers The data references for the leaf nodes to point to
      */
-    public LoadTreeNode(String[] loadStrings, INDArray[] dataPointers) {
+    public LoadTreeNode(String[] loadStrings, DataPointer[] dataPointers) {
         if(loadStrings == null)
             throw new RuntimeException("The array of load Strings you passed is null!");
         else if(dataPointers == null) {
@@ -74,15 +76,17 @@ public class LoadTreeNode {
             throw new RuntimeException("Your array of load strings and array of data pointers are of different lengths! " + loadStrings.length + " load strings and " + dataPointers.length + "data pointers.");
         }
         
+        this.children = new LoadTreeNode[loadStrings.length];
+        for(int i = 0; i < children.length; i++) {
+            this.children[i] = new LoadTreeNode(loadStrings[i], dataPointers[i]);
+        }
+        /*
         for(int i = 0; i <  children.length; i++) {
             children[i].setLoadString(loadStrings[i]);
             children[i].setDataPointer(dataPointers[i]);
-        }
+        }*/
         
-        this.children = new LoadTreeNode[loadStrings.length];
-        for(int i = 0; i < 0; i++) {
-            this.children[i] = new LoadTreeNode(loadStrings[i], dataPointers[i]);
-        }
+        
         this.loadString = null;
         this.successful = false;
     }
@@ -90,22 +94,28 @@ public class LoadTreeNode {
     /**
      * @return a list of all required path strings which have not been loaded.
      */
-    public List<String> getUnsuccessfullPaths(){
+    public List<String> getUnsuccessfullPaths() {
         List<String> unsuccessfulPaths = new ArrayList<>();
         if(children != null) {
             //iterate through all child nodes and add unsuccessful sub-paths to our list
             for(LoadTreeNode child : children) {
                 List<String> childUnsuccessfulPaths = child.getUnsuccessfullPaths();
-                for(String path : childUnsuccessfulPaths) {
-                    //add this node's load string to the front of each sub-path
-                    path = this.getLoadString() + path;
+                if(loadString != null) {
+                    for(int i = 0; i < childUnsuccessfulPaths.size(); i++) {
+                        //add this node's load string to the front of each sub-path
+                        childUnsuccessfulPaths.set(i, this.getLoadString() + childUnsuccessfulPaths.get(i));
+                    } 
                 }
                 unsuccessfulPaths.addAll(childUnsuccessfulPaths);
             }
         }
         //base case: if this node has a data pointer and has not yet been marked successful, then return its load string as an unsuccessful path
-        if(dataPointer != null && !successful)
-            unsuccessfulPaths.add(loadString);
+        if(dataPointer != null && !successful){
+            
+            if(loadString != null) {
+                unsuccessfulPaths.add(loadString);
+            }
+        }
         return unsuccessfulPaths;
     }
     
@@ -115,8 +125,13 @@ public class LoadTreeNode {
      * Sets the INDArray that this node will mutate on a call to load()
      * @param dataPointer The INDArray object this node should load with data
      */
-    public void setDataPointer(INDArray dataPointer){
+    public void setDataPointer(DataPointer dataPointer){
         this.dataPointer = dataPointer;
+    }
+    
+    public void setData(INDArray data){
+        this.dataPointer.set(data);
+        this.successful = true;
     }
     
     public void setNetworkPiece(Loadable networkPiece) {
@@ -127,7 +142,7 @@ public class LoadTreeNode {
         return networkPiece;
     }
     
-    public INDArray getDataPointer() {
+    public DataPointer getDataPointer() {
         return dataPointer;
     }
     

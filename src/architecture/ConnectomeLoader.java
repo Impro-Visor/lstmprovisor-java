@@ -32,6 +32,9 @@ public class ConnectomeLoader {
         try {
             String[] unrecognizedPaths = null;
             File meatFileOrFolder = new File(meatFolderOrZipPath);
+            if(network.getCurrentLoadTree() == null){
+                network.constructLoadTree();
+            }
             if(meatFileOrFolder.isDirectory())
             {
                 File[] meatFiles = meatFileOrFolder.listFiles(new FilenameFilter() {
@@ -42,7 +45,6 @@ public class ConnectomeLoader {
                 int numFound = 0;
                 for(int i = 0; i < meatFiles.length; i++)
                 {
-                    //System.out.println(meatFiles[i].getPath());
                     found[i] = network.load(nickd4j.ReadWriteUtilities.readNumpyCSVFile(meatFiles[i].getPath()), network.pathCdr(meatFiles[i].getName()).replaceFirst(".csv", ""));
                     if(found[i])
                         numFound++;
@@ -70,8 +72,10 @@ public class ConnectomeLoader {
                         String loadPath = network.pathCdr(entry.getName()).replaceFirst(".csv", "");
                         Reader zreader = new InputStreamReader(zin);
                         boolean found = network.load(nickd4j.ReadWriteUtilities.readNumpyCSVReader(zreader), loadPath);
-                        if(!found)
+                        if(!found) {
+                            //System.out.println(loadPath);
                             unrecognizedPathsList.add(entry.getName());
+                        }
                     }
                 }
                 unrecognizedPaths = unrecognizedPathsList.toArray(new String[unrecognizedPathsList.size()]);
